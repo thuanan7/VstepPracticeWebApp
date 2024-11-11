@@ -9,7 +9,7 @@ public static class DataSeederExtensions
     public static void AddSeederServices(this IServiceCollection services)
     {
         services.AddScoped<IDataSeeder, RoleSeeder>();
-        //services.AddScoped<IDataSeeder, UserSeeder>();
+        services.AddScoped<IDataSeeder, UserSeeder>();
         //services.AddScoped<IDataSeeder, ExamSeeder>();
         services.AddScoped<DataSeeder>();
     }
