@@ -1,6 +1,6 @@
 ﻿namespace VstepPractice.API.Common.Constant;
 
-public static class Roles
+public static class RoleConstants
 {
     public const string Admin = "Admin";
     public const string Teacher = "Teacher";

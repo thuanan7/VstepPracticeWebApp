@@ -1,5 +1,8 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using VstepPractice.API.Data;
+using VstepPractice.API.Data.Seeding.Abstracts;
+using VstepPractice.API.Data.Seeding.Seeders;
+using VstepPractice.API.Data.Seeding;
 using VstepPractice.API.Models.Entities;
 
 namespace VstepPractice.API.DependencyInjection.Extensions;

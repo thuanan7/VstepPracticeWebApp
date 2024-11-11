@@ -1,4 +1,4 @@
-﻿namespace VstepPractice.API.Data.Seeders;
+﻿namespace VstepPractice.API.Data.Seeding.Abstracts;
 
 public interface IDataSeeder
 {
