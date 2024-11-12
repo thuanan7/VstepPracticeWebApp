@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using VstepPractice.API.Data;
 using VstepPractice.API.DependencyInjection.Extensions;
+using VstepPractice.API.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,6 +45,7 @@ var app = builder.Build();
 if (app.Environment.IsDevelopment())
 {
     app.ConfigureSwagger();
+    app.ApplyMigration();
     await app.SeedDataAsync();
 }
 

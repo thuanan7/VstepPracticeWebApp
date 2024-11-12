@@ -28,7 +28,6 @@
     <Folder Include="Common\Exceptions\" />
     <Folder Include="Middlewares\" />
     <Folder Include="Migrations\" />
-    <Folder Include="Models\DTOs\Users\Query\" />
   </ItemGroup>
 
 </Project>
