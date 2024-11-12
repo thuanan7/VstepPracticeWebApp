@@ -1,9 +1,9 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using VstepPractice.API.Data;
-using VstepPractice.API.Data.Seeding.Abstracts;
-using VstepPractice.API.Data.Seeding.Seeders;
-using VstepPractice.API.Data.Seeding;
 using VstepPractice.API.Models.Entities;
+using VstepPractice.API.Repositories.Implementations;
+using VstepPractice.API.Repositories.Interfaces;
+using VstepPractice.API.Services.Users;
 
 namespace VstepPractice.API.DependencyInjection.Extensions;
 
@@ -28,5 +28,11 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<RoleManager<Role>>();
         services.AddScoped<UserManager<User>>();
+    }
+
+    public static void AddUserServices(this IServiceCollection services)
+    {
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IUserService, UserService>();
     }
 }

@@ -30,6 +30,22 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int>
             entity.ToTable("Users");
             entity.Property(e => e.Role)
                 .HasDefaultValue(UserRole.User);
+
+            entity.Property(u => u.UserName)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(u => u.Email)
+                .IsRequired()
+                .HasMaxLength(256);
+
+            // Index for email uniqueness
+            entity.HasIndex(u => u.Email)
+                .IsUnique();
+
+            // Index for username uniqueness
+            entity.HasIndex(u => u.UserName)
+                .IsUnique();
         });
 
         builder.Entity<Role>(entity =>
