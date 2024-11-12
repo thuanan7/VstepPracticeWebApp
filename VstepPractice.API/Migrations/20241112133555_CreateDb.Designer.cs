@@ -12,8 +12,8 @@ using VstepPractice.API.Data;
 namespace VstepPractice.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241112122600_RemoveRoleColumnInUserTable")]
-    partial class RemoveRoleColumnInUserTable
+    [Migration("20241112133555_CreateDb")]
+    partial class CreateDb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
