@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using VstepPractice.API.Common.Constant;
-using VstepPractice.API.Common.Enums;
 using VstepPractice.API.Data.Seeding.Abstracts;
 using VstepPractice.API.Models.Entities;
 
@@ -21,9 +20,8 @@ public class RoleSeeder : BaseIdentitySeeder
         try
         {
             // Seed Roles
-            foreach (UserRole role in Enum.GetValues(typeof(UserRole)))
+            foreach (string roleName in RoleConstants.All)
             {
-                var roleName = role.ToString();
                 if (!await _roleManager.RoleExistsAsync(roleName))
                 {
                     await _roleManager.CreateAsync(new Role(roleName));

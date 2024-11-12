@@ -28,9 +28,6 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int>
         builder.Entity<User>(entity =>
         {
             entity.ToTable("Users");
-            entity.Property(e => e.Role)
-                .HasDefaultValue(UserRole.User);
-
             entity.Property(u => u.UserName)
                 .IsRequired()
                 .HasMaxLength(50);

@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using VstepPractice.API.Common.Constant;
-using VstepPractice.API.Common.Enums;
 using VstepPractice.API.Data.Seeding.Abstracts;
 using VstepPractice.API.Models.Entities;
 
@@ -8,13 +7,13 @@ namespace VstepPractice.API.Data.Seeding.Seeders;
 
 public class UserSeeder : BaseIdentitySeeder
 {
-    private readonly Dictionary<string, (string Password, UserRole Role)> _usersToSeed = new()
+    private readonly Dictionary<string, (string Password, string Role)> _usersToSeed = new()
     {
-        { "admin@vstep.com", ("Admin@123", UserRole.Admin) },
-        { "teacher1@vstep.com", ("Teacher@123", UserRole.Teacher) },
-        { "teacher2@vstep.com", ("Teacher@123", UserRole.Teacher) },
-        { "student1@vstep.com", ("Student@123", UserRole.Student) },
-        { "student2@vstep.com", ("Student@123", UserRole.Student) }
+        { "admin@vstep.com", ("Admin@123", RoleConstants.Admin) },
+        { "teacher1@vstep.com", ("Teacher@123", RoleConstants.Teacher) },
+        { "teacher2@vstep.com", ("Teacher@123", RoleConstants.Teacher) },
+        { "student1@vstep.com", ("Student@123", RoleConstants.Student) },
+        { "student2@vstep.com", ("Student@123", RoleConstants.Student) }
     };
 
     public UserSeeder(
@@ -38,7 +37,6 @@ public class UserSeeder : BaseIdentitySeeder
                     {
                         UserName = email,
                         Email = email,
-                        Role = role,
                         EmailConfirmed = true
                     };
 

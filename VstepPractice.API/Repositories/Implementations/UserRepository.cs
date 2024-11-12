@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
-using VstepPractice.API.Common.Enums;
-using VstepPractice.API.Common.Utils;
 using VstepPractice.API.Data;
 using VstepPractice.API.Models.Entities;
 using VstepPractice.API.Repositories.Interfaces;
@@ -44,33 +42,5 @@ public class UserRepository : RepositoryBase<User, int>, IUserRepository
             defaultIncludes.AddRange(includeProperties);
 
         return await base.FindByIdAsync(id, cancellationToken, defaultIncludes.ToArray());
-    }
-
-    // Additional methods specific to User entity
-    public async Task<List<User>> GetTeachersAsync(
-        CancellationToken cancellationToken = default)
-    {
-        return await FindAll(u => u.Role == UserRole.Teacher)
-            .ToListAsync(cancellationToken);
-    }
-
-    public async Task<bool> UpdateUserRoleAsync(
-        int userId,
-        UserRole newRole,
-        CancellationToken cancellationToken = default)
-    {
-        var user = await FindByIdAsync(userId, cancellationToken);
-        if (user == null)
-            return false;
-
-        user.Role = newRole;
-        Update(user);
-
-        // Update Identity roles
-        var currentRoles = await _userManager.GetRolesAsync(user);
-        await _userManager.RemoveFromRolesAsync(user, currentRoles);
-        await _userManager.AddToRoleAsync(user, newRole.ToString());
-
-        return true;
     }
 }
