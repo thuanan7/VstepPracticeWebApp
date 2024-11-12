@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Options;
+using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using VstepPractice.API.DependencyInjection.Options;
@@ -9,7 +10,31 @@ public static class SwaggerExtensions
 {
     public static void AddSwagger(this IServiceCollection services)
     {
-        services.AddSwaggerGen();
+        services.AddSwaggerGen(options =>
+        {
+            options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            {
+                Description =
+            "JWT Authorization\r\n\r\n" +
+            "Enter: Bearer (token)\r\n\r\n",
+                Name = "Authorization",
+                In = ParameterLocation.Header,
+                Scheme = "Bearer"
+            });
+            options.AddSecurityRequirement(new OpenApiSecurityRequirement()
+            {
+               {
+                  new OpenApiSecurityScheme
+                  {
+                    Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" },
+                    Scheme = "oauth2",
+                    Name = "Bearer",
+                    In = ParameterLocation.Header
+                  },
+                  new string[] {}
+               }
+            });
+        });
         services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
     }
 

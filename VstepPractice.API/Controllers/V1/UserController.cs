@@ -1,5 +1,7 @@
 ﻿using Asp.Versioning;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using VstepPractice.API.Common.Constant;
 using VstepPractice.API.Common.Utils;
 using VstepPractice.API.Extensions;
 using VstepPractice.API.Models.DTOs.Users;
@@ -8,6 +10,7 @@ using VstepPractice.API.Services.Users;
 namespace VstepPractice.API.Controllers.V1;
 
 [ApiVersion(1)]
+[Authorize(Roles = $"{RoleConstants.Admin}, {RoleConstants.Teacher}")]
 public class UserController : ApiController
 {
     private readonly IUserService _userService;
@@ -31,6 +34,8 @@ public class UserController : ApiController
 
     [HttpGet(Name = "GetUsers")]
     [ProducesResponseType(typeof(Result<PagedResult<UserDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetUsers(
         string? searchTerm = null,
         string? sortColumnAndOrder = null,
@@ -50,6 +55,8 @@ public class UserController : ApiController
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult> CreateUser(
         CreateUserDto model,
         CancellationToken cancellationToken)
