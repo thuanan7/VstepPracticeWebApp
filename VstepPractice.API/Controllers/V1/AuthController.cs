@@ -3,7 +3,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using VstepPractice.API.Common.Utils;
-using VstepPractice.API.Models.DTOs.Auth;
+using VstepPractice.API.Models.DTOs.Auth.Requests;
+using VstepPractice.API.Models.DTOs.Auth.Responses;
 using VstepPractice.API.Services.Auth;
 
 namespace VstepPractice.API.Controllers.V1;

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace VstepPractice.API.Models.DTOs.Auth;
+namespace VstepPractice.API.Models.DTOs.Auth.Requests;
 
 public class RegisterRequest
 {

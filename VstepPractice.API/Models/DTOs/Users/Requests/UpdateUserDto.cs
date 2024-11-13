@@ -1,4 +1,4 @@
-﻿namespace VstepPractice.API.Models.DTOs.Users;
+﻿namespace VstepPractice.API.Models.DTOs.Users.Requests;
 
 public class UpdateUserDto
 {

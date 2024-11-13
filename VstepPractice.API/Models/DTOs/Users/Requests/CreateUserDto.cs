@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using VstepPractice.API.Common.Enums;
 
-namespace VstepPractice.API.Models.DTOs.Users;
+namespace VstepPractice.API.Models.DTOs.Users.Requests;
 
 public class CreateUserDto
 {

@@ -1,10 +1,10 @@
 ﻿using AutoMapper;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Linq.Expressions;
 using VstepPractice.API.Common.Enums;
 using VstepPractice.API.Common.Utils;
-using VstepPractice.API.Models.DTOs.Users;
+using VstepPractice.API.Models.DTOs.Users.Requests;
+using VstepPractice.API.Models.DTOs.Users.Responses;
 using VstepPractice.API.Models.Entities;
 using VstepPractice.API.Repositories.Interfaces;
 

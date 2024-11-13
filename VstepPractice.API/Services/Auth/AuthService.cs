@@ -6,8 +6,9 @@ using System.Security.Claims;
 using System.Text;
 using VstepPractice.API.Common.Constant;
 using VstepPractice.API.Common.Utils;
-using VstepPractice.API.Models.DTOs.Auth;
-using VstepPractice.API.Models.DTOs.Users;
+using VstepPractice.API.Models.DTOs.Auth.Requests;
+using VstepPractice.API.Models.DTOs.Auth.Responses;
+using VstepPractice.API.Models.DTOs.Users.Responses;
 using VstepPractice.API.Models.Entities;
 
 namespace VstepPractice.API.Services.Auth;

@@ -1,6 +1,6 @@
-﻿using VstepPractice.API.Models.DTOs.Users;
+﻿using VstepPractice.API.Models.DTOs.Users.Responses;
 
-namespace VstepPractice.API.Models.DTOs.Auth;
+namespace VstepPractice.API.Models.DTOs.Auth.Responses;
 
 public class AuthResponse
 {

@@ -1,0 +1,19 @@
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace VstepPractice.API.Models.DTOs.Questions.Requests;
+
+public class CreateQuestionRequest
+{
+    [Required]
+    [StringLength(1000)]
+    public string QuestionText { get; set; } = string.Empty;
+
+    public string? MediaUrl { get; set; }
+
+    [Range(1, 10)]
+    public int Points { get; set; } = 1;
+
+    [Required]
+    [MinLength(2)]
+    public List<CreateQuestionOptionRequest> Options { get; set; } = new();
+}

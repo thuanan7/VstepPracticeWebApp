@@ -1,7 +1,8 @@
 ﻿using VstepPractice.API.Common.Enums;
 using VstepPractice.API.Common.Utils;
+using VstepPractice.API.Models.DTOs.Users.Responses;
 
-namespace VstepPractice.API.Models.DTOs.Users;
+namespace VstepPractice.API.Models.DTOs.Users.Requests;
 
 public class GetUsersDto
 {

@@ -4,7 +4,8 @@ using Microsoft.AspNetCore.Mvc;
 using VstepPractice.API.Common.Constant;
 using VstepPractice.API.Common.Utils;
 using VstepPractice.API.Extensions;
-using VstepPractice.API.Models.DTOs.Users;
+using VstepPractice.API.Models.DTOs.Users.Requests;
+using VstepPractice.API.Models.DTOs.Users.Responses;
 using VstepPractice.API.Services.Users;
 
 namespace VstepPractice.API.Controllers.V1;

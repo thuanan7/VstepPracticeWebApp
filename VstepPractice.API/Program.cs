@@ -19,7 +19,7 @@ builder.Services.AddSeederServices();
 
 builder.Services.AddAutoMapper(Assembly.GetAssembly(typeof(Program)));
 
-builder.Services.AddUserServices();
+builder.Services.AddDependencyInjections();
 
 builder.Services.AddAuthenServices(builder.Configuration);
 

@@ -1,5 +1,6 @@
 ﻿using VstepPractice.API.Common.Utils;
-using VstepPractice.API.Models.DTOs.Users;
+using VstepPractice.API.Models.DTOs.Users.Requests;
+using VstepPractice.API.Models.DTOs.Users.Responses;
 
 namespace VstepPractice.API.Services.Users;
 

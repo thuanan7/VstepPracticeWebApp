@@ -8,6 +8,7 @@ using VstepPractice.API.Models.Entities;
 using VstepPractice.API.Repositories.Implementations;
 using VstepPractice.API.Repositories.Interfaces;
 using VstepPractice.API.Services.Auth;
+using VstepPractice.API.Services.Exams;
 using VstepPractice.API.Services.Users;
 
 namespace VstepPractice.API.DependencyInjection.Extensions;
@@ -35,10 +36,16 @@ public static class ServiceCollectionExtensions
         services.AddScoped<UserManager<User>>();
     }
 
-    public static void AddUserServices(this IServiceCollection services)
+    public static void AddDependencyInjections(this IServiceCollection services)
     {
-        services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IExamService, ExamService>();
+
+        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IExamRepository, ExamRepository>();
+        services.AddScoped<IQuestionOptionRepository, QuestionOptionRepository>();
+
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
     }
 
     public static void AddAuthenServices(this IServiceCollection services, IConfiguration configuration)

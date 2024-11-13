@@ -2,7 +2,7 @@
 
 public enum SectionType
 {
-    Listening,
+    Listening = 1,
     Reading,
     Writing,
     Speaking
