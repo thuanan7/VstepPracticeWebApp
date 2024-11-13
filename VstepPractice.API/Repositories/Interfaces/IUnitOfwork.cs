@@ -7,6 +7,7 @@ public interface IUnitOfWork : IDisposable
     IQuestionOptionRepository QuestionOptions { get; }
     IStudentAttemptRepository StudentAttemptRepository { get; }
     IAnswerRepository AnswerRepository { get; }
+    IQuestionRepository QuestionRepository { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task BeginTransactionAsync(CancellationToken cancellationToken = default);

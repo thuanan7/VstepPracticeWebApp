@@ -18,6 +18,7 @@ public class UnitOfWork : IUnitOfWork
     private IQuestionOptionRepository? _questionOptionRepository;
     private IStudentAttemptRepository? _studentAttemptRepository;
     private IAnswerRepository? _answerRepository;
+    private IQuestionRepository? _questionRepository;
 
     public UnitOfWork(
         ApplicationDbContext context,
@@ -33,7 +34,7 @@ public class UnitOfWork : IUnitOfWork
     public IUserRepository UserRepository => _userRepository ??= new UserRepository(_context,
         _userManager); // Inject UserManager
     public IExamRepository ExamRepository => _examRepository ??= new ExamRepository(_context);
-    
+
     public IQuestionOptionRepository QuestionOptions => _questionOptionRepository ??= new QuestionOptionRepository(_context);
 
     public IStudentAttemptRepository StudentAttemptRepository =>
@@ -41,6 +42,8 @@ public class UnitOfWork : IUnitOfWork
 
     public IAnswerRepository AnswerRepository =>
         _answerRepository ??= new AnswerRepository(_context);
+
+    public IQuestionRepository QuestionRepository => _questionRepository ??= new QuestionRepository(_context);
 
     public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
     {

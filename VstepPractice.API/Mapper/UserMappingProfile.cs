@@ -8,6 +8,7 @@ using VstepPractice.API.Models.DTOs.Sections.Responses;
 using VstepPractice.API.Models.DTOs.Questions.Responses;
 using VstepPractice.API.Models.DTOs.Passage.Responses;
 using VstepPractice.API.Models.DTOs.SectionParts.Responses;
+using VstepPractice.API.Models.DTOs.Attempt.Responses;
 
 namespace VstepPractice.API.Mapper;
 
@@ -27,5 +28,8 @@ public class UserMappingProfile : Profile
         CreateMap<Passage, PassageResponse>().ReverseMap();
         CreateMap<Question, QuestionResponse>().ReverseMap();
         CreateMap<QuestionOption, QuestionOptionResponse>().ReverseMap();
+
+        CreateMap<Answer, AnswerResponse>().ReverseMap();
+        CreateMap<StudentAttempt, AttemptResponse>().ReverseMap();
     }
 }
