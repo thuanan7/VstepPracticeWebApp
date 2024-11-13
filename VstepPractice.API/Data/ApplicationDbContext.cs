@@ -21,6 +21,7 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int>
     public DbSet<QuestionOption> QuestionOptions { get; set; }
     public DbSet<StudentAttempt> StudentAttempts { get; set; }
     public DbSet<Answer> Answers { get; set; }
+    public DbSet<WritingAssessment> WritingAssessments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -160,10 +161,12 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int>
             .HasForeignKey(a => a.QuestionId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Update Answer configuration to make SelectedOptionId optional
         builder.Entity<Answer>()
             .HasOne(a => a.SelectedOption)
             .WithMany()
             .HasForeignKey(a => a.SelectedOptionId)
+            .IsRequired(false)  // Make the relationship optional
             .OnDelete(DeleteBehavior.Restrict);
 
         // Configure StudentAttempt relationships
@@ -182,5 +185,28 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int>
             entity.Property(e => e.Status)
                 .HasDefaultValue(AttemptStatus.InProgress);
         });
+
+        // WritingAssessment configuration
+        builder.Entity<WritingAssessment>()
+            .HasOne(wa => wa.Answer)
+            .WithOne()
+            .HasForeignKey<WritingAssessment>(wa => wa.AnswerId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<WritingAssessment>()
+            .Property(wa => wa.TaskAchievement)
+            .HasPrecision(4, 2);
+
+        builder.Entity<WritingAssessment>()
+            .Property(wa => wa.CoherenceCohesion)
+            .HasPrecision(4, 2);
+
+        builder.Entity<WritingAssessment>()
+            .Property(wa => wa.LexicalResource)
+            .HasPrecision(4, 2);
+
+        builder.Entity<WritingAssessment>()
+            .Property(wa => wa.GrammarAccuracy)
+            .HasPrecision(4, 2);
     }
 }

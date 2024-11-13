@@ -5,6 +5,8 @@ using VstepPractice.API.Models.DTOs.StudentAttempts.Requests;
 using VstepPractice.API.Models.DTOs.StudentAttempts.Responses;
 using VstepPractice.API.Models.Entities;
 using VstepPractice.API.Repositories.Interfaces;
+using VstepPractice.API.Services.AI;
+using VstepPractice.API.Services.BackgroundServices;
 
 namespace VstepPractice.API.Services.StudentAttempts;
 
@@ -12,13 +14,16 @@ public class StudentAttemptService : IStudentAttemptService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly IEssayScoringQueue _scoringQueue;
 
     public StudentAttemptService(
         IUnitOfWork unitOfWork,
-        IMapper mapper)
+        IMapper mapper,
+        IEssayScoringQueue scoringQueue)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _scoringQueue = scoringQueue;
     }
 
     public async Task<Result<AttemptResponse>> StartAttemptAsync(
@@ -72,7 +77,7 @@ public class StudentAttemptService : IStudentAttemptService
                 new Error("Attempt.NotInProgress", "This attempt is not in progress."));
 
         var question = await _unitOfWork.QuestionRepository
-            .FindByIdAsync(request.QuestionId, cancellationToken);
+            .FindByIdAsync(request.QuestionId, cancellationToken, q => q.Section, q => q.Passage);
 
         if (question == null)
             return Result.Failure<AnswerResponse>(Error.NotFound);
@@ -88,19 +93,7 @@ public class StudentAttemptService : IStudentAttemptService
         if (existingAnswer != null)
         {
             // Update existing answer
-            existingAnswer.SelectedOptionId = request.SelectedOptionId;
-            existingAnswer.EssayAnswer = request.EssayAnswer;
-
-            // Recalculate score for multiple choice
-            if (request.SelectedOptionId.HasValue)
-            {
-                var selectedOption = await _unitOfWork.QuestionOptions
-                    .FindByIdAsync(request.SelectedOptionId.Value, cancellationToken);
-                existingAnswer.Score = selectedOption?.IsCorrect == true ? question.Points : 0;
-            }
-
             answer = existingAnswer;
-            _unitOfWork.AnswerRepository.Update(answer);
         }
         else
         {
@@ -108,26 +101,59 @@ public class StudentAttemptService : IStudentAttemptService
             answer = new Answer
             {
                 AttemptId = attemptId,
-                QuestionId = request.QuestionId,
-                SelectedOptionId = request.SelectedOptionId,
-                EssayAnswer = request.EssayAnswer
+                QuestionId = request.QuestionId
             };
+            _unitOfWork.AnswerRepository.Add(answer);
+        }
 
-            // Calculate score for multiple choice
-            if (request.SelectedOptionId.HasValue)
-            {
+        // Handle different question types
+        switch (question.Section.Type)
+        {
+            case SectionType.Writing:
+                answer.EssayAnswer = request.EssayAnswer;
+                answer.SelectedOptionId = null; // Explicitly set to null for writing
+
+                // Queue for AI scoring if essay is provided
+                if (!string.IsNullOrEmpty(request.EssayAnswer))
+                {
+                    await _scoringQueue.QueueScoringTaskAsync(new EssayScoringTask
+                    {
+                        AnswerId = answer.Id,
+                        Essay = request.EssayAnswer,
+                        Prompt = question.QuestionText ?? string.Empty
+                    });
+                }
+                break;
+
+            case SectionType.Reading:
+            case SectionType.Listening:
+                if (!request.SelectedOptionId.HasValue)
+                {
+                    return Result.Failure<AnswerResponse>(
+                        new Error("Answer.OptionRequired", "Multiple choice answer requires a selected option."));
+                }
+
+                answer.SelectedOptionId = request.SelectedOptionId;
+                answer.EssayAnswer = null; // Explicitly set to null for multiple choice
+
+                // Calculate score immediately for multiple choice
                 var selectedOption = await _unitOfWork.QuestionOptions
                     .FindByIdAsync(request.SelectedOptionId.Value, cancellationToken);
                 answer.Score = selectedOption?.IsCorrect == true ? question.Points : 0;
-            }
+                break;
 
-            _unitOfWork.AnswerRepository.Add(answer);
+            default:
+                throw new NotSupportedException($"Question type {question.Section.Type} is not supported.");
+        }
+
+        if (existingAnswer != null)
+        {
+            _unitOfWork.AnswerRepository.Update(answer);
         }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var response = _mapper.Map<AnswerResponse>(answer);
-
         return Result.Success(response);
     }
 

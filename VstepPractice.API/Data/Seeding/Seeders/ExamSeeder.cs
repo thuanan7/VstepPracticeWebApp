@@ -8,16 +8,16 @@ namespace VstepPractice.API.Data.Seeding.Seeders;
 
 public class ExamSeeder : BaseSeeder
 {
-    private readonly ApplicationDbContext context;
+    private readonly ApplicationDbContext _context;
     private readonly UserManager<User> _userManager;
 
     public ExamSeeder(
         ApplicationDbContext context,
         UserManager<User> userManager,
-    ILogger<ExamSeeder> logger)
+        ILogger<ExamSeeder> logger)
         : base(context, logger)
     {
-        this.context = context;
+        _context = context;
         _userManager = userManager;
     }
 
@@ -25,94 +25,147 @@ public class ExamSeeder : BaseSeeder
     {
         try
         {
-            if (await context.Exams.AnyAsync())
+            if (await _context.Exams.AnyAsync())
                 return;
+
+            // Find admin user (assuming it exists from UserSeeder)
+            var admin = await _userManager.FindByEmailAsync("admin@vstep.com");
+            if (admin == null)
+            {
+                _logger.LogError("Admin user not found for exam seeding");
+                return;
+            }
 
             // Create sample exam
             var exam = new Exam
             {
-                Title = "VSTEP B2 Sample Test",
+                Title = "VSTEP B2 Sample Test (With Writing)",
                 Description = "Practice test for VSTEP B2 certification",
-                CreatedById = 1 // Ensure this admin user exists
+                CreatedById = admin.Id
             };
 
-            context.Exams.Add(exam);
-            await context.SaveChangesAsync();
+            _context.Exams.Add(exam);
+            await _context.SaveChangesAsync();
 
-            // Create Listening Section
-            var listeningSection = new Section
+            // Create Writing Section
+            var writingSection = new Section
             {
                 ExamId = exam.Id,
-                Type = SectionType.Listening,
-                Title = "Listening Comprehension",
-                Instructions = "In this section, you will hear several different types of recordings...",
+                Type = SectionType.Writing,
+                Title = "Writing Section",
+                Instructions = """
+                    This section tests your ability to write clear, detailed text on a variety of topics.
+                    You will have 60 minutes to complete two writing tasks.
+                    Task 1 requires you to write at least 150 words.
+                    Task 2 requires you to write at least 250 words.
+                    """,
                 OrderNum = 1
             };
 
-            context.Sections.Add(listeningSection);
-            await context.SaveChangesAsync();
+            _context.Sections.Add(writingSection);
+            await _context.SaveChangesAsync();
 
-            // Create Listening Parts
+            // Create Writing Parts
             var part1 = new SectionPart
             {
-                SectionId = listeningSection.Id,
+                SectionId = writingSection.Id,
                 PartNumber = 1,
-                Title = "Short Announcements",
-                Instructions = "In this part, you will hear EIGHT short announcements or instructions...",
+                Title = "Task 1 - Letter Writing",
+                Instructions = "You should spend about 20 minutes on this task. Write at least 150 words.",
                 OrderNum = 1
             };
 
             var part2 = new SectionPart
             {
-                SectionId = listeningSection.Id,
+                SectionId = writingSection.Id,
                 PartNumber = 2,
-                Title = "Conversations",
-                Instructions = "In this part, you will hear THREE conversations...",
+                Title = "Task 2 - Essay Writing",
+                Instructions = "You should spend about 40 minutes on this task. Write at least 250 words.",
                 OrderNum = 2
             };
 
-            context.SectionParts.AddRange(part1, part2);
-            await context.SaveChangesAsync();
+            _context.SectionParts.AddRange(part1, part2);
+            await _context.SaveChangesAsync();
 
-            // Add sample passage for Part 1
-            var announcement1 = new Passage
+            // Add sample passage/prompt for Part 1 (Letter Writing)
+            var letterPrompt = new Passage
             {
-                SectionId = listeningSection.Id,
+                SectionId = writingSection.Id,
                 PartId = part1.Id,
-                Title = "Airport Announcement",
-                AudioUrl = "announcements/airport.mp3",
+                Title = "Formal Letter Task",
+                Content = """
+                    You recently visited a local museum and were disappointed with your experience.
+                    Write a letter to the museum director. In your letter:
+                    - Explain when you visited the museum
+                    - Describe what disappointed you
+                    - Suggest what improvements could be made
+                    """,
                 OrderNum = 1
             };
 
-            context.Passages.Add(announcement1);
-            await context.SaveChangesAsync();
+            _context.Passages.Add(letterPrompt);
+            await _context.SaveChangesAsync();
 
-            // Add questions for the announcement
-            var question1 = new Question
+            // Add question for letter task
+            var letterQuestion = new Question
             {
-                SectionId = listeningSection.Id,
+                SectionId = writingSection.Id,
                 PartId = part1.Id,
-                PassageId = announcement1.Id,
-                QuestionText = "What is the flight number mentioned in the announcement?",
-                OrderNum = 1,
-                Points = 1
+                PassageId = letterPrompt.Id,
+                QuestionText = """
+                    Write a formal letter to the museum director addressing the points mentioned above.
+                    Write at least 150 words.
+                    You do NOT need to write any addresses.
+                    Begin your letter with "Dear Sir/Madam,"
+                    """,
+                Points = 20,
+                OrderNum = 1
             };
 
-            context.Questions.Add(question1);
-            await context.SaveChangesAsync();
+            _context.Questions.Add(letterQuestion);
+            await _context.SaveChangesAsync();
 
-            // Add options for the question
-            var options = new[]
+            // Add sample passage/prompt for Part 2 (Essay Writing)
+            var essayPrompt = new Passage
             {
-            new QuestionOption { QuestionId = question1.Id, OptionText = "VN 123", IsCorrect = true },
-            new QuestionOption { QuestionId = question1.Id, OptionText = "VN 124", IsCorrect = false },
-            new QuestionOption { QuestionId = question1.Id, OptionText = "VN 125", IsCorrect = false },
-            new QuestionOption { QuestionId = question1.Id, OptionText = "VN 126", IsCorrect = false }
-        };
+                SectionId = writingSection.Id,
+                PartId = part2.Id,
+                Title = "Essay Task",
+                Content = """
+                    Some people believe that students should be required to learn a foreign language in school,
+                    while others believe it should be optional.
+                    Discuss both views and give your opinion.
+                    """,
+                OrderNum = 1
+            };
 
-            context.QuestionOptions.AddRange(options);
-            await context.SaveChangesAsync();
-            _logger.LogInformation("Seeded sample VSTEP B2 exam");
+            _context.Passages.Add(essayPrompt);
+            await _context.SaveChangesAsync();
+
+            // Add question for essay task
+            var essayQuestion = new Question
+            {
+                SectionId = writingSection.Id,
+                PartId = part2.Id,
+                PassageId = essayPrompt.Id,
+                QuestionText = """
+                    Write about the following topic:
+                    
+                    Some people believe that students should be required to learn a foreign language in school,
+                    while others believe it should be optional.
+                    Discuss both views and give your opinion.
+
+                    Write at least 250 words.
+                    Give reasons for your answer and include any relevant examples from your own experience.
+                    """,
+                Points = 30,
+                OrderNum = 2
+            };
+
+            _context.Questions.Add(essayQuestion);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Successfully seeded exam with writing section");
         }
         catch (Exception ex)
         {

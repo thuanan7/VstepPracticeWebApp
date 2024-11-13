@@ -19,6 +19,7 @@ public class UnitOfWork : IUnitOfWork
     private IStudentAttemptRepository? _studentAttemptRepository;
     private IAnswerRepository? _answerRepository;
     private IQuestionRepository? _questionRepository;
+    private IWritingAssessmentRepository? _writingAssessmentRepository;
 
     public UnitOfWork(
         ApplicationDbContext context,
@@ -45,6 +46,8 @@ public class UnitOfWork : IUnitOfWork
 
     public IQuestionRepository QuestionRepository => _questionRepository ??= new QuestionRepository(_context);
 
+    public IWritingAssessmentRepository WritingAssessmentRepository =>
+        _writingAssessmentRepository ??= new WritingAssessmentRepository(_context);
     public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
     {
         if (_transaction != null)

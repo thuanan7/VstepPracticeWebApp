@@ -1,13 +1,18 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Betalgo.Ranul.OpenAI.Extensions;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.VisualBasic;
 using System.Text;
+using System.Text.Json;
 using VstepPractice.API.Data;
 using VstepPractice.API.Models.Entities;
 using VstepPractice.API.Repositories.Implementations;
 using VstepPractice.API.Repositories.Interfaces;
+using VstepPractice.API.Services.AI;
 using VstepPractice.API.Services.Auth;
+using VstepPractice.API.Services.BackgroundServices;
 using VstepPractice.API.Services.Exams;
 using VstepPractice.API.Services.StudentAttempts;
 using VstepPractice.API.Services.Users;
@@ -73,5 +78,39 @@ public static class ServiceCollectionExtensions
         });
 
         services.AddScoped<IAuthService, AuthService>();
+    }
+
+    public static void AddAiServices(this IServiceCollection services, IConfiguration configuration)
+    {
+        // 1. Register the background service as Singleton first
+        services.AddSingleton<EssayScoringBackgroundService>();
+
+        // 2. Register the interface implementation
+        services.AddSingleton<IEssayScoringQueue>(sp =>
+            sp.GetRequiredService<EssayScoringBackgroundService>());
+
+        // 3. Register it as a hosted service
+        services.AddHostedService(sp =>
+            sp.GetRequiredService<EssayScoringBackgroundService>());
+
+        // 4. OpenAI services
+        services.AddOpenAIService(settings =>
+        {
+            settings.ApiKey = configuration["OpenAI:ApiKey"];
+            settings.DefaultModelId = configuration["OpenAI:ModelName"];
+        });
+
+        services.AddOptions<OpenAiOptions>()
+            .Bind(configuration.GetSection(OpenAiOptions.SectionName));
+
+        services.AddHttpClient<IAiScoringService, OpenAiScoringService>()
+        .SetHandlerLifetime(TimeSpan.FromMinutes(5))
+        .ConfigureHttpClient(client =>
+        {
+            client.Timeout = TimeSpan.FromSeconds(
+                configuration.GetValue<int>("OpenAI:TimeoutSeconds"));
+        });
+
+        services.AddScoped<IAiScoringService, OpenAiScoringService>();
     }
 }
