@@ -1,4 +1,4 @@
-﻿namespace VstepPractice.API.Models.DTOs.Attempt.Requests;
+﻿namespace VstepPractice.API.Models.DTOs.StudentAttempts.Requests;
 
 public class StartAttemptRequest
 {

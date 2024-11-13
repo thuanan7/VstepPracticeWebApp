@@ -1,8 +1,8 @@
 ﻿using AutoMapper;
 using VstepPractice.API.Common.Enums;
 using VstepPractice.API.Common.Utils;
-using VstepPractice.API.Models.DTOs.Attempt.Requests;
-using VstepPractice.API.Models.DTOs.Attempt.Responses;
+using VstepPractice.API.Models.DTOs.StudentAttempts.Requests;
+using VstepPractice.API.Models.DTOs.StudentAttempts.Responses;
 using VstepPractice.API.Models.Entities;
 using VstepPractice.API.Repositories.Interfaces;
 
@@ -127,6 +127,7 @@ public class StudentAttemptService : IStudentAttemptService
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         var response = _mapper.Map<AnswerResponse>(answer);
+
         return Result.Success(response);
     }
 
@@ -159,8 +160,9 @@ public class StudentAttemptService : IStudentAttemptService
         int attemptId,
         CancellationToken cancellationToken = default)
     {
+        // Sử dụng repository method mới để load đầy đủ data
         var attempt = await _unitOfWork.StudentAttemptRepository
-            .FindByIdAsync(attemptId, cancellationToken);
+            .GetAttemptWithDetailsAsync(attemptId, cancellationToken);
 
         if (attempt == null || attempt.UserId != userId)
             return Result.Failure<AttemptResultResponse>(Error.NotFound);
@@ -169,17 +171,11 @@ public class StudentAttemptService : IStudentAttemptService
             return Result.Failure<AttemptResultResponse>(
                 new Error("Attempt.NotCompleted", "This attempt is not completed."));
 
-        var exam = await _unitOfWork.ExamRepository
-            .FindByIdAsync(attempt.ExamId, cancellationToken);
-
-        if (exam == null)
-            return Result.Failure<AttemptResultResponse>(Error.NotFound);
-
         // Calculate scores
         var result = new AttemptResultResponse
         {
             Id = attempt.Id,
-            ExamTitle = exam.Title!,
+            ExamTitle = attempt.Exam.Title!,
             StartTime = attempt.StartTime,
             EndTime = attempt.EndTime!.Value,
             Answers = _mapper.Map<List<AnswerResponse>>(attempt.Answers)
@@ -190,14 +186,13 @@ public class StudentAttemptService : IStudentAttemptService
         decimal maximumScore = 0;
         var sectionScores = new Dictionary<string, decimal>();
 
-        foreach (var section in exam.Sections)
+        foreach (var section in attempt.Exam.Sections)
         {
-            var sectionScore = attempt.Answers
-                .Where(a => a.Question.SectionId == section.Id)
-                .Sum(a => a.Score ?? 0);
+            var sectionAnswers = attempt.Answers
+                .Where(a => a.Question.SectionId == section.Id);
 
-            var sectionMaxScore = section.Questions
-                .Sum(q => q.Points);
+            var sectionScore = sectionAnswers.Sum(a => a.Score ?? 0);
+            var sectionMaxScore = section.Questions.Sum(q => q.Points);
 
             sectionScores.Add(section.Title!, sectionScore);
             totalScore += sectionScore;

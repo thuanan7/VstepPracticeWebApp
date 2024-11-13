@@ -8,7 +8,7 @@ using VstepPractice.API.Models.DTOs.Sections.Responses;
 using VstepPractice.API.Models.DTOs.Questions.Responses;
 using VstepPractice.API.Models.DTOs.Passage.Responses;
 using VstepPractice.API.Models.DTOs.SectionParts.Responses;
-using VstepPractice.API.Models.DTOs.Attempt.Responses;
+using VstepPractice.API.Models.DTOs.StudentAttempts.Responses;
 
 namespace VstepPractice.API.Mapper;
 
@@ -29,7 +29,20 @@ public class UserMappingProfile : Profile
         CreateMap<Question, QuestionResponse>().ReverseMap();
         CreateMap<QuestionOption, QuestionOptionResponse>().ReverseMap();
 
-        CreateMap<Answer, AnswerResponse>().ReverseMap();
-        CreateMap<StudentAttempt, AttemptResponse>().ReverseMap();
+        CreateMap<StudentAttempt, AttemptResponse>()
+            .ForMember(dest => dest.ExamTitle,
+                opt => opt.MapFrom(src => src.Exam.Title))
+            .ForMember(dest => dest.Answers,
+                opt => opt.MapFrom(src => src.Answers));
+
+        CreateMap<Answer, AnswerResponse>()
+            .ForMember(dest => dest.QuestionText,
+                opt => opt.MapFrom(src => src.Question.QuestionText))
+            .ForMember(dest => dest.IsCorrect,
+                opt => opt.MapFrom(src =>
+                    src.SelectedOptionId.HasValue &&
+                    src.Question.Options.Any(o =>
+                        o.Id == src.SelectedOptionId &&
+                        o.IsCorrect)));
     }
 }

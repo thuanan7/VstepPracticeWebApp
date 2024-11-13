@@ -1,4 +1,4 @@
-﻿namespace VstepPractice.API.Models.DTOs.Attempt.Responses;
+﻿namespace VstepPractice.API.Models.DTOs.StudentAttempts.Responses;
 
 public class AnswerResponse
 {

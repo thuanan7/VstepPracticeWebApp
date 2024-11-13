@@ -1,6 +1,6 @@
 ﻿using VstepPractice.API.Common.Utils;
-using VstepPractice.API.Models.DTOs.Attempt.Requests;
-using VstepPractice.API.Models.DTOs.Attempt.Responses;
+using VstepPractice.API.Models.DTOs.StudentAttempts.Requests;
+using VstepPractice.API.Models.DTOs.StudentAttempts.Responses;
 
 namespace VstepPractice.API.Services.StudentAttempts;
 
