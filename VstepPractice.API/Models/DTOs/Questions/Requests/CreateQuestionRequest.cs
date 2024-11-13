@@ -14,6 +14,9 @@ public class CreateQuestionRequest
     public int Points { get; set; } = 1;
 
     [Required]
+    public int OrderNum { get; set; }
+
+    [Required]
     [MinLength(2)]
     public List<CreateQuestionOptionRequest> Options { get; set; } = new();
 }

@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using VstepPractice.API.Common.Enums;
-using VstepPractice.API.Models.DTOs.Questions.Requests;
+using VstepPractice.API.Models.DTOs.SectionParts.Requests;
 
 namespace VstepPractice.API.Models.DTOs.Sections.Requests;
 
@@ -16,9 +16,8 @@ public class CreateSectionRequest
     public string? Instructions { get; set; }
 
     [Required]
-    [Range(1, 10)]
     public int OrderNum { get; set; }
 
     [Required]
-    public List<CreateQuestionRequest> Questions { get; set; } = new();
+    public List<CreateSectionPartRequest> Parts { get; set; } = new();
 }

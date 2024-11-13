@@ -1,5 +1,5 @@
 ﻿using VstepPractice.API.Common.Enums;
-using VstepPractice.API.Models.DTOs.Questions.Responses;
+using VstepPractice.API.Models.DTOs.SectionParts.Responses;
 
 namespace VstepPractice.API.Models.DTOs.Sections.Responses;
 
@@ -10,5 +10,5 @@ public class SectionResponse
     public string Title { get; set; } = string.Empty;
     public string? Instructions { get; set; }
     public int OrderNum { get; set; }
-    public List<QuestionResponse> Questions { get; set; } = new();
+    public List<SectionPartResponse> Parts { get; set; } = new();
 }
