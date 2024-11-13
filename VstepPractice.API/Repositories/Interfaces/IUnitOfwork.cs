@@ -5,7 +5,8 @@ public interface IUnitOfWork : IDisposable
     IExamRepository ExamRepository { get; }
     IUserRepository UserRepository { get; }
     IQuestionOptionRepository QuestionOptions { get; }
-    // Thêm các repositories khác khi cần
+    IStudentAttemptRepository StudentAttemptRepository { get; }
+    IAnswerRepository AnswerRepository { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     Task BeginTransactionAsync(CancellationToken cancellationToken = default);

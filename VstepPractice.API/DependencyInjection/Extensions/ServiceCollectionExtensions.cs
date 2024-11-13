@@ -9,6 +9,7 @@ using VstepPractice.API.Repositories.Implementations;
 using VstepPractice.API.Repositories.Interfaces;
 using VstepPractice.API.Services.Auth;
 using VstepPractice.API.Services.Exams;
+using VstepPractice.API.Services.StudentAttempts;
 using VstepPractice.API.Services.Users;
 
 namespace VstepPractice.API.DependencyInjection.Extensions;
@@ -40,10 +41,13 @@ public static class ServiceCollectionExtensions
     {
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IExamService, ExamService>();
+        services.AddScoped<IStudentAttemptService, StudentAttemptService>();
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IExamRepository, ExamRepository>();
         services.AddScoped<IQuestionOptionRepository, QuestionOptionRepository>();
+        services.AddScoped<IStudentAttemptRepository, StudentAttemptRepository>();
+        services.AddScoped<IAnswerRepository, AnswerRepository>();
 
         services.AddScoped<IUnitOfWork, UnitOfWork>();
     }
