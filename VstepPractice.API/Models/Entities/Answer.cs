@@ -12,7 +12,10 @@ public class Answer : BaseEntity
     public decimal? Score { get; set; }         // Điểm số (cho cả trắc nghiệm và tự luận)
 
     // Navigation properties
+    [ForeignKey("AttemptId")]
     public virtual StudentAttempt Attempt { get; set; } = default!;
+    [ForeignKey("QuestionId")]
     public virtual Question Question { get; set; } = default!;
+    [ForeignKey("SelectedOptionId")]
     public virtual QuestionOption? SelectedOption { get; set; }
 }

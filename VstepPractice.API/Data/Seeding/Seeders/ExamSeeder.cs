@@ -8,6 +8,7 @@ namespace VstepPractice.API.Data.Seeding.Seeders;
 
 public class ExamSeeder : BaseSeeder
 {
+    private readonly ApplicationDbContext context;
     private readonly UserManager<User> _userManager;
 
     public ExamSeeder(
@@ -16,6 +17,7 @@ public class ExamSeeder : BaseSeeder
     ILogger<ExamSeeder> logger)
         : base(context, logger)
     {
+        this.context = context;
         _userManager = userManager;
     }
 
@@ -23,110 +25,93 @@ public class ExamSeeder : BaseSeeder
     {
         try
         {
-            if (await _context.Exams.AnyAsync())
+            if (await context.Exams.AnyAsync())
                 return;
 
-            var teacher = await _userManager.FindByEmailAsync("teacher1@vstep.com");
-            if (teacher == null)
-                throw new InvalidOperationException("Teacher user not found");
-
+            // Create sample exam
             var exam = new Exam
             {
-                Title = "VSTEP B2 Practice Exam 2024",
-                Description = "Comprehensive practice exam for VSTEP B2 certification",
-                CreatedById = teacher.Id,
-                Sections = new List<Section>
-                {
-                    new Section
-                    {
-                        Type = SectionType.Listening,
-                        Title = "Listening Comprehension",
-                        Instructions = "Listen to the audio and answer the questions. You will hear each recording twice.",
-                        OrderNum = 1,
-                        Questions = new List<Question>
-                        {
-                            new Question
-                            {
-                                QuestionText = "Listen to the conversation about a company meeting. What is the main topic discussed?",
-                                MediaUrl = "/audio/listening1.mp3",
-                                Points = 2,
-                                Options = new List<QuestionOption>
-                                {
-                                    new QuestionOption { OptionText = "Budget planning for next year", IsCorrect = true },
-                                    new QuestionOption { OptionText = "Employee performance reviews" },
-                                    new QuestionOption { OptionText = "Office renovation plans" },
-                                    new QuestionOption { OptionText = "Marketing strategy" }
-                                }
-                            },
-                            new Question
-                            {
-                                QuestionText = "What does the speaker suggest about project deadlines?",
-                                MediaUrl = "/audio/listening2.mp3",
-                                Points = 2,
-                                Options = new List<QuestionOption>
-                                {
-                                    new QuestionOption { OptionText = "They should be extended" },
-                                    new QuestionOption { OptionText = "They are unrealistic", IsCorrect = true },
-                                    new QuestionOption { OptionText = "They are too flexible" },
-                                    new QuestionOption { OptionText = "They need more discussion" }
-                                }
-                            }
-                        }
-                    },
-                    new Section
-                    {
-                        Type = SectionType.Reading,
-                        Title = "Reading Comprehension",
-                        Instructions = "Read the passages carefully and answer the questions that follow.",
-                        OrderNum = 2,
-                        Questions = new List<Question>
-                        {
-                            new Question
-                            {
-                                QuestionText = "Based on the passage, what is the author's main argument about climate change?",
-                                Points = 2,
-                                Options = new List<QuestionOption>
-                                {
-                                    new QuestionOption { OptionText = "It is an unsolvable problem" },
-                                    new QuestionOption { OptionText = "Individual actions have no impact" },
-                                    new QuestionOption { OptionText = "Immediate collective action is necessary", IsCorrect = true },
-                                    new QuestionOption { OptionText = "Technology will solve everything" }
-                                }
-                            },
-                            new Question
-                            {
-                                QuestionText = "What evidence does the author provide to support the economic impact?",
-                                Points = 2,
-                                Options = new List<QuestionOption>
-                                {
-                                    new QuestionOption { OptionText = "Historical data only" },
-                                    new QuestionOption { OptionText = "Expert opinions and statistical analysis", IsCorrect = true },
-                                    new QuestionOption { OptionText = "Personal observations" },
-                                    new QuestionOption { OptionText = "Media reports" }
-                                }
-                            }
-                        }
-                    },
-                    new Section
-                    {
-                        Type = SectionType.Writing,
-                        Title = "Writing",
-                        Instructions = "Write an essay of at least 250 words on the given topic. Pay attention to structure, grammar, and coherence.",
-                        OrderNum = 3,
-                        Questions = new List<Question>
-                        {
-                            new Question
-                            {
-                                QuestionText = "Some people believe that technology has made life more complicated, while others think it has made life easier. Discuss both views and give your opinion.",
-                                Points = 10
-                            }
-                        }
-                    }
-                }
+                Title = "VSTEP B2 Sample Test",
+                Description = "Practice test for VSTEP B2 certification",
+                CreatedById = 1 // Ensure this admin user exists
             };
 
-            _context.Exams.Add(exam);
-            await _context.SaveChangesAsync();
+            context.Exams.Add(exam);
+            await context.SaveChangesAsync();
+
+            // Create Listening Section
+            var listeningSection = new Section
+            {
+                ExamId = exam.Id,
+                Type = SectionType.Listening,
+                Title = "Listening Comprehension",
+                Instructions = "In this section, you will hear several different types of recordings...",
+                OrderNum = 1
+            };
+
+            context.Sections.Add(listeningSection);
+            await context.SaveChangesAsync();
+
+            // Create Listening Parts
+            var part1 = new SectionPart
+            {
+                SectionId = listeningSection.Id,
+                PartNumber = 1,
+                Title = "Short Announcements",
+                Instructions = "In this part, you will hear EIGHT short announcements or instructions...",
+                OrderNum = 1
+            };
+
+            var part2 = new SectionPart
+            {
+                SectionId = listeningSection.Id,
+                PartNumber = 2,
+                Title = "Conversations",
+                Instructions = "In this part, you will hear THREE conversations...",
+                OrderNum = 2
+            };
+
+            context.SectionParts.AddRange(part1, part2);
+            await context.SaveChangesAsync();
+
+            // Add sample passage for Part 1
+            var announcement1 = new Passage
+            {
+                SectionId = listeningSection.Id,
+                PartId = part1.Id,
+                Title = "Airport Announcement",
+                AudioUrl = "announcements/airport.mp3",
+                OrderNum = 1
+            };
+
+            context.Passages.Add(announcement1);
+            await context.SaveChangesAsync();
+
+            // Add questions for the announcement
+            var question1 = new Question
+            {
+                SectionId = listeningSection.Id,
+                PartId = part1.Id,
+                PassageId = announcement1.Id,
+                QuestionText = "What is the flight number mentioned in the announcement?",
+                OrderNum = 1,
+                Points = 1
+            };
+
+            context.Questions.Add(question1);
+            await context.SaveChangesAsync();
+
+            // Add options for the question
+            var options = new[]
+            {
+            new QuestionOption { QuestionId = question1.Id, OptionText = "VN 123", IsCorrect = true },
+            new QuestionOption { QuestionId = question1.Id, OptionText = "VN 124", IsCorrect = false },
+            new QuestionOption { QuestionId = question1.Id, OptionText = "VN 125", IsCorrect = false },
+            new QuestionOption { QuestionId = question1.Id, OptionText = "VN 126", IsCorrect = false }
+        };
+
+            context.QuestionOptions.AddRange(options);
+            await context.SaveChangesAsync();
             _logger.LogInformation("Seeded sample VSTEP B2 exam");
         }
         catch (Exception ex)

@@ -15,6 +15,8 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int>
 
     public DbSet<Exam> Exams { get; set; }
     public DbSet<Section> Sections { get; set; }
+    public DbSet<SectionPart> SectionParts { get; set; }
+    public DbSet<Passage> Passages { get; set; }
     public DbSet<Question> Questions { get; set; }
     public DbSet<QuestionOption> QuestionOptions { get; set; }
     public DbSet<StudentAttempt> StudentAttempts { get; set; }
@@ -75,23 +77,94 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int>
             entity.ToTable("UserTokens");
         });
 
-        // Configure Exam relationships
-        builder.Entity<Exam>(entity =>
-        {
-            entity.HasOne(e => e.CreatedBy)
-                .WithMany(u => u.CreatedExams)
-                .HasForeignKey(e => e.CreatedById)
-                .OnDelete(DeleteBehavior.Restrict);
-        });
 
-        // Configure Section relationships
-        builder.Entity<Section>(entity =>
-        {
-            entity.HasOne(s => s.Exam)
-                .WithMany(e => e.Sections)
-                .HasForeignKey(s => s.ExamId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
+        // Exam -> Section relationship
+        builder.Entity<Section>()
+            .HasOne(s => s.Exam)
+            .WithMany(e => e.Sections)
+            .HasForeignKey(s => s.ExamId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Section -> SectionPart relationship
+        builder.Entity<SectionPart>()
+            .HasOne(p => p.Section)
+            .WithMany(s => s.Parts)
+            .HasForeignKey(p => p.SectionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Section -> Passage relationship
+        builder.Entity<Passage>()
+            .HasOne(p => p.Section)
+            .WithMany(s => s.Passages)
+            .HasForeignKey(p => p.SectionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // SectionPart -> Passage relationship
+        builder.Entity<Passage>()
+            .HasOne(p => p.Part)
+            .WithMany(sp => sp.Passages)
+            .HasForeignKey(p => p.PartId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Section -> Question relationship
+        builder.Entity<Question>()
+            .HasOne(q => q.Section)
+            .WithMany(s => s.Questions)
+            .HasForeignKey(q => q.SectionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // SectionPart -> Question relationship
+        builder.Entity<Question>()
+            .HasOne(q => q.Part)
+            .WithMany(p => p.Questions)
+            .HasForeignKey(q => q.PartId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Passage -> Question relationship
+        builder.Entity<Question>()
+            .HasOne(q => q.Passage)
+            .WithMany(p => p.Questions)
+            .HasForeignKey(q => q.PassageId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Question -> QuestionOption relationship
+        builder.Entity<QuestionOption>()
+            .HasOne(o => o.Question)
+            .WithMany(q => q.Options)
+            .HasForeignKey(o => o.QuestionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // StudentAttempt relationships
+        builder.Entity<StudentAttempt>()
+            .HasOne(sa => sa.User)
+            .WithMany(u => u.StudentAttempts)
+            .HasForeignKey(sa => sa.UserId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<StudentAttempt>()
+            .HasOne(sa => sa.Exam)
+            .WithMany(e => e.StudentAttempts)
+            .HasForeignKey(sa => sa.ExamId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        // Answer relationships
+        builder.Entity<Answer>()
+            .HasOne(a => a.Attempt)
+            .WithMany(sa => sa.Answers)
+            .HasForeignKey(a => a.AttemptId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Answer>()
+            .HasOne(a => a.Question)
+            .WithMany()
+            .HasForeignKey(a => a.QuestionId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<Answer>()
+            .HasOne(a => a.SelectedOption)
+            .WithMany()
+            .HasForeignKey(a => a.SelectedOptionId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         // Configure StudentAttempt relationships
         builder.Entity<StudentAttempt>(entity =>
@@ -108,49 +181,6 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int>
 
             entity.Property(e => e.Status)
                 .HasDefaultValue(AttemptStatus.InProgress);
-        });
-
-        // Configure Question relationships
-        builder.Entity<Question>(entity =>
-        {
-            entity.HasOne(q => q.Section)
-                .WithMany(s => s.Questions)
-                .HasForeignKey(q => q.SectionId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        // Configure QuestionOption relationships
-        builder.Entity<QuestionOption>(entity =>
-        {
-            entity.HasOne(o => o.Question)
-                .WithMany(q => q.Options)
-                .HasForeignKey(o => o.QuestionId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.Property(o => o.IsCorrect)
-                .HasDefaultValue(false);
-        });
-
-        // Configure Answer relationships
-        builder.Entity<Answer>(entity =>
-        {
-            entity.HasIndex(e => new { e.AttemptId, e.QuestionId })
-                .IsUnique();
-
-            entity.HasOne(a => a.Attempt)
-                .WithMany(sa => sa.Answers)
-                .HasForeignKey(a => a.AttemptId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasOne(a => a.Question)
-                .WithMany()
-                .HasForeignKey(a => a.QuestionId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(a => a.SelectedOption)
-                .WithMany()
-                .HasForeignKey(a => a.SelectedOptionId)
-                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

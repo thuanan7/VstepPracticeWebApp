@@ -1,20 +1,18 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
-using VstepPractice.API.Common.Enums;
 
 namespace VstepPractice.API.Models.Entities;
 
-public class Section : BaseEntity
+public class SectionPart : BaseEntity
 {
-    public int ExamId { get; set; }
-    public SectionType Type { get; set; }
-    public string? Title { get; set; }
+    public int SectionId { get; set; }
+    public int PartNumber { get; set; }
+    public string Title { get; set; } = string.Empty;
     public string? Instructions { get; set; }
     public int OrderNum { get; set; }
 
     // Navigation properties
-    [ForeignKey("ExamId")]
-    public virtual Exam Exam { get; set; } = default!;
-    public virtual ICollection<SectionPart> Parts { get; set; } = new List<SectionPart>();
+    [ForeignKey("SectionId")]
+    public virtual Section Section { get; set; } = default!;
     public virtual ICollection<Passage> Passages { get; set; } = new List<Passage>();
     public virtual ICollection<Question> Questions { get; set; } = new List<Question>();
 }
