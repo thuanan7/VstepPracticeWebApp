@@ -19,22 +19,24 @@ public class ExamRepository : RepositoryBase<Exam, int>, IExamRepository
         int pageSize = 10,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.Set<Exam>().AsQueryable();
-
-        // Apply predicate if provided
-        if (predicate != null)
-        {
-            query = query.Where(predicate);
-        }
-
-        // Include related data
-        query = query
+        var query = _context.Set<Exam>()
+            .AsNoTracking()
             .Include(e => e.CreatedBy)
             .Include(e => e.Sections.OrderBy(s => s.OrderNum))
-                .ThenInclude(s => s.Questions)
-                    .ThenInclude(q => q.Options);
+                .ThenInclude(s => s.Parts.OrderBy(p => p.OrderNum))
+                    .ThenInclude(p => p.Passages.OrderBy(pg => pg.OrderNum))
+                        .ThenInclude(pg => pg.Questions.OrderBy(q => q.OrderNum))
+                            .ThenInclude(q => q.Options)
+            .AsQueryable();
 
-        return await PagedResult<Exam>.CreateAsync(query, pageIndex, pageSize, cancellationToken);
+        if (predicate != null)
+            query = query.Where(predicate);
+
+        return await PagedResult<Exam>.CreateAsync(
+            query,
+            pageIndex,
+            pageSize,
+            cancellationToken);
     }
 
     public override async Task<Exam?> FindByIdAsync(
@@ -48,20 +50,19 @@ public class ExamRepository : RepositoryBase<Exam, int>, IExamRepository
         query = query
             .Include(e => e.CreatedBy)
             .Include(e => e.Sections.OrderBy(s => s.OrderNum))
-                .ThenInclude(s => s.Questions)
-                    .ThenInclude(q => q.Options);
+                .ThenInclude(s => s.Parts.OrderBy(p => p.OrderNum))
+                    .ThenInclude(p => p.Passages.OrderBy(pg => pg.OrderNum))
+                        .ThenInclude(pg => pg.Questions.OrderBy(q => q.OrderNum))
+                            .ThenInclude(q => q.Options);
 
         // Add any additional includes
-        if (includeProperties != null)
+        foreach (var property in includeProperties)
         {
-            foreach (var includeProperty in includeProperties)
-            {
-                query = query.Include(includeProperty);
-            }
+            query = query.Include(property);
         }
 
         return await query
             .AsTracking()
-            .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+            .FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
     }
 }

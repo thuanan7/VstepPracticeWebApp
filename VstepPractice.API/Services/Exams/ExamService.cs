@@ -7,7 +7,7 @@ using VstepPractice.API.Repositories.Interfaces;
 
 namespace VstepPractice.API.Services.Exams;
 
-public partial class ExamService : IExamService
+public class ExamService : IExamService
 {
     private readonly IExamRepository _examRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -41,6 +41,29 @@ public partial class ExamService : IExamService
         return Result.Success(result);
     }
 
+    public async Task<Result<PagedResult<ExamResponse>>> GetExamsByUserIdAsync(
+    int userId,
+    int pageIndex,
+    int pageSize,
+    CancellationToken cancellationToken)
+    {
+        // Sử dụng GetPagedAsync từ ExamRepository thay vì tự xây dựng query
+        var pagedResult = await _unitOfWork.ExamRepository.GetPagedAsync(
+            e => e.CreatedById == userId,
+            pageIndex,
+            pageSize,
+            cancellationToken);
+
+        var examResponses = _mapper.Map<List<ExamResponse>>(pagedResult.Items);
+        var result = PagedResult<ExamResponse>.Create(
+            examResponses,
+            pagedResult.PageIndex,
+            pagedResult.PageSize,
+            pagedResult.TotalCount);
+
+        return Result.Success(result);
+    }
+
     public async Task<Result<ExamResponse>> GetExamByIdAsync(
         int id,
         CancellationToken cancellationToken = default)
@@ -60,42 +83,90 @@ public partial class ExamService : IExamService
         CreateExamRequest request,
         CancellationToken cancellationToken = default)
     {
-        var user = await _userRepository.FindByIdAsync(userId, cancellationToken);
-        if (user == null)
+        try
         {
-            return Result.Failure<ExamResponse>(Error.NotFound);
-        }
+            await _unitOfWork.BeginTransactionAsync(cancellationToken);
 
-        var exam = new Exam
-        {
-            Title = request.Title,
-            Description = request.Description,
-            CreatedById = userId,
-            Sections = request.Sections.Select(s => new Section
+            var user = await _unitOfWork.UserRepository.FindByIdAsync(userId, cancellationToken);
+            if (user == null)
+                return Result.Failure<ExamResponse>(Error.NotFound);
+
+            var exam = new Exam
             {
-                Title = s.Title,
-                Instructions = s.Instructions,
-                Type = s.Type,
-                OrderNum = s.OrderNum,
-                Questions = s.Questions.Select(q => new Question
+                Title = request.Title,
+                Description = request.Description,
+                CreatedById = userId,
+            };
+
+            // Map sections with parts, passages, and questions
+            foreach (var sectionRequest in request.Sections)
+            {
+                var section = new Section
                 {
-                    QuestionText = q.QuestionText,
-                    MediaUrl = q.MediaUrl,
-                    Points = q.Points,
-                    Options = q.Options.Select(o => new QuestionOption
+                    Type = sectionRequest.Type,
+                    Title = sectionRequest.Title,
+                    Instructions = sectionRequest.Instructions,
+                    OrderNum = sectionRequest.OrderNum
+                };
+
+                foreach (var partRequest in sectionRequest.Parts)
+                {
+                    var part = new SectionPart
                     {
-                        OptionText = o.OptionText,
-                        IsCorrect = o.IsCorrect
-                    }).ToList()
-                }).ToList()
-            }).ToList()
-        };
+                        PartNumber = partRequest.PartNumber,
+                        Title = partRequest.Title,
+                        Instructions = partRequest.Instructions,
+                        OrderNum = partRequest.OrderNum
+                    };
 
-        _examRepository.Add(exam);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+                    foreach (var passageRequest in partRequest.Passages)
+                    {
+                        var passage = new Passage
+                        {
+                            Title = passageRequest.Title,
+                            Content = passageRequest.Content,
+                            AudioUrl = passageRequest.AudioUrl,
+                            OrderNum = passageRequest.OrderNum
+                        };
 
-        var response = _mapper.Map<ExamResponse>(exam);
-        return Result.Success(response);
+                        foreach (var questionRequest in passageRequest.Questions)
+                        {
+                            var question = new Question
+                            {
+                                QuestionText = questionRequest.QuestionText,
+                                MediaUrl = questionRequest.MediaUrl,
+                                Points = questionRequest.Points,
+                                OrderNum = questionRequest.OrderNum,
+                                Options = questionRequest.Options.Select(o => new QuestionOption
+                                {
+                                    OptionText = o.OptionText,
+                                    IsCorrect = o.IsCorrect
+                                }).ToList()
+                            };
+
+                            passage.Questions.Add(question);
+                        }
+
+                        part.Passages.Add(passage);
+                    }
+
+                    section.Parts.Add(part);
+                }
+
+                exam.Sections.Add(section);
+            }
+
+            _unitOfWork.ExamRepository.Add(exam);
+            await _unitOfWork.CommitAsync(cancellationToken);
+
+            var response = _mapper.Map<ExamResponse>(exam);
+            return Result.Success(response);
+        }
+        catch (Exception)
+        {
+            await _unitOfWork.RollbackAsync(cancellationToken);
+            throw;
+        }
     }
 
     public async Task<Result<ExamResponse>> UpdateExamAsync(
