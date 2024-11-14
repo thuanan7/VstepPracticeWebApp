@@ -32,15 +32,16 @@ public class StudentAttemptRepository : RepositoryBase<StudentAttempt, int>, ISt
         return await _context.StudentAttempts
             .Include(a => a.Exam)
                 .ThenInclude(e => e.Sections)
-                    .ThenInclude(s => s.Questions)
+                    .ThenInclude(s => s.Parts)  // Include Parts
             .Include(a => a.Answers)
                 .ThenInclude(ans => ans.Question)
-                    .ThenInclude(q => q.Passage) // Add Passage include
+                    .ThenInclude(q => q.Part)   // Include Part for Question
+            .Include(a => a.Answers)
+                .ThenInclude(ans => ans.Question)
+                    .ThenInclude(q => q.Passage)
             .Include(a => a.Answers)
                 .ThenInclude(ans => ans.Question)
                     .ThenInclude(q => q.Options)
-            .Include(a => a.Answers)
-                .ThenInclude(ans => ans.SelectedOption)
             .FirstOrDefaultAsync(a => a.Id == attemptId, cancellationToken);
     }
 }

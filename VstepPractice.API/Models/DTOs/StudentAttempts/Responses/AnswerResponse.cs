@@ -12,4 +12,5 @@ public class AnswerResponse
     public string? AiFeedback { get; set; }
     public decimal? Score { get; set; }
     public bool IsCorrect { get; set; }
+    public WritingScoreDetails? WritingScore { get; set; }
 }

@@ -15,15 +15,18 @@ public class StudentAttemptService : IStudentAttemptService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
     private readonly IEssayScoringQueue _scoringQueue;
+    private readonly ILogger<StudentAttemptService> _logger;
 
     public StudentAttemptService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
-        IEssayScoringQueue scoringQueue)
+        IEssayScoringQueue scoringQueue,
+        ILogger<StudentAttemptService> logger)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _scoringQueue = scoringQueue;
+        _logger = logger;
     }
 
     public async Task<Result<AttemptResponse>> StartAttemptAsync(
@@ -185,9 +188,9 @@ public class StudentAttemptService : IStudentAttemptService
     }
 
     public async Task<Result<AttemptResultResponse>> GetAttemptResultAsync(
-        int userId,
-        int attemptId,
-        CancellationToken cancellationToken = default)
+    int userId,
+    int attemptId,
+    CancellationToken cancellationToken = default)
     {
         var attempt = await _unitOfWork.StudentAttemptRepository
             .GetAttemptWithDetailsAsync(attemptId, cancellationToken);
@@ -199,52 +202,138 @@ public class StudentAttemptService : IStudentAttemptService
             return Result.Failure<AttemptResultResponse>(
                 new Error("Attempt.NotCompleted", "This attempt is not completed."));
 
-        // Calculate scores and create response
+        _logger.LogInformation(
+            "Processing attempt result. Sections: {SectionCount}, Answers: {AnswerCount}",
+            attempt.Exam.Sections.Count,
+            attempt.Answers.Count);
+
+        // Map answers with writing assessments
+        var answers = new List<AnswerResponse>();
+        foreach (var answer in attempt.Answers)
+        {
+            var writingAssessment = answer.Question.Section.Type == SectionType.Writing
+                ? await _unitOfWork.WritingAssessmentRepository
+                    .GetByAnswerIdAsync(answer.Id, cancellationToken)
+                : null;
+
+            var answerResponse = _mapper.Map<AnswerResponse>(answer, opt =>
+            {
+                opt.Items["WritingAssessment"] = writingAssessment;
+            });
+            answers.Add(answerResponse);
+        }
+
         var result = new AttemptResultResponse
         {
             Id = attempt.Id,
-            ExamTitle = attempt.Exam.Title ?? "Untitled Exam",
+            ExamTitle = attempt.Exam.Title!,
             StartTime = attempt.StartTime,
             EndTime = attempt.EndTime!.Value,
-            Answers = attempt.Answers.Select(answer => new AnswerResponse
-            {
-                Id = answer.Id,
-                QuestionId = answer.QuestionId,
-                QuestionText = answer.Question.QuestionText ?? string.Empty,
-                PassageTitle = answer.Question.Passage?.Title ?? string.Empty,
-                PassageContent = answer.Question.Passage?.Content,
-                SelectedOptionId = answer.SelectedOptionId,
-                EssayAnswer = answer.EssayAnswer,
-                AiFeedback = answer.AiFeedback,
-                Score = answer.Score,
-                IsCorrect = answer.SelectedOptionId.HasValue &&
-                           answer.Question.Options.Any(o =>
-                               o.Id == answer.SelectedOptionId && o.IsCorrect)
-            }).ToList()
+            Answers = answers
         };
 
-        // Calculate total and section scores
-        decimal totalScore = 0;
-        decimal maximumScore = 0;
+        // Calculate section scores
         var sectionScores = new Dictionary<string, decimal>();
+        decimal listeningScore = 0;
+        decimal readingScore = 0;
+        decimal writingScore = 0;
 
         foreach (var section in attempt.Exam.Sections)
         {
             var sectionAnswers = attempt.Answers
-                .Where(a => a.Question.SectionId == section.Id);
+                .Where(a => a.Question.SectionId == section.Id)
+                .ToList();
 
-            var sectionScore = sectionAnswers.Sum(a => a.Score ?? 0);
-            var sectionMaxScore = section.Questions.Sum(q => q.Points);
+            switch (section.Type)
+            {
+                case SectionType.Listening:
+                    var correctListeningAnswers = sectionAnswers.Count(a =>
+                        a.SelectedOptionId.HasValue &&
+                        a.Question.Options.Any(o =>
+                            o.Id == a.SelectedOptionId && o.IsCorrect));
+                    listeningScore = VstepScoreCalculator.CalculateListeningScore(correctListeningAnswers);
+                    sectionScores.Add("Listening", listeningScore);
+                    break;
 
-            sectionScores.Add(section.Title ?? $"Section {section.OrderNum}", sectionScore);
-            totalScore += sectionScore;
-            maximumScore += sectionMaxScore;
+                case SectionType.Reading:
+                    var readingParts = sectionAnswers
+                        .GroupBy(a => a.Question.Part.PartNumber)
+                        .Select(g => new
+                        {
+                            PartNumber = g.Key,
+                            Score = g.Sum(a => a.Score ?? 0)
+                        })
+                        .ToList();
+
+                    var partScores = readingParts.Select(p => p.Score).ToList();
+                    readingScore = VstepScoreCalculator.CalculateReadingScore(partScores);
+                    sectionScores.Add("Reading", readingScore);
+                    break;
+
+                case SectionType.Writing:
+                    var writingParts = section.Parts
+                        .OrderBy(p => p.PartNumber)
+                        .ToList();
+
+                    var writingDetails = new WritingSectionScore();
+
+                    foreach (var part in writingParts)
+                    {
+                        var answer = sectionAnswers
+                            .FirstOrDefault(a => a.Question.PartId == part.Id);
+
+                        if (answer != null)
+                        {
+                            // Get writing assessment
+                            var assessment = await _unitOfWork.WritingAssessmentRepository
+                                .GetByAnswerIdAsync(answer.Id, cancellationToken);
+
+                            if (assessment != null)
+                            {
+                                var taskScore = new WritingTaskScore
+                                {
+                                    TaskNumber = part.PartNumber,
+                                    TaskAchievement = assessment.TaskAchievement,
+                                    CoherenceCohesion = assessment.CoherenceCohesion,
+                                    LexicalResource = assessment.LexicalResource,
+                                    GrammarAccuracy = assessment.GrammarAccuracy
+                                };
+
+                                writingDetails.TaskScores.Add(taskScore);
+                            }
+                        }
+                    }
+
+                    // Only calculate if we have both tasks
+                    if (writingDetails.TaskScores.Count == 2)
+                    {
+                        writingScore = writingDetails.FinalScore;
+                        sectionScores.Add("Writing", writingScore);
+                        result.WritingDetails = writingDetails;
+
+                        _logger.LogInformation(
+                            "Writing scores calculated. Task1: {Task1}, Task2: {Task2}, Final: {Final}",
+                            writingDetails.TaskScores[0].TotalScore,
+                            writingDetails.TaskScores[1].TotalScore,
+                            writingScore);
+                    }
+                    else
+                    {
+                        _logger.LogWarning(
+                            "Expected 2 writing tasks, but found {Count} for attempt {AttemptId}",
+                            writingDetails.TaskScores.Count,
+                            attemptId);
+                    }
+                    break;
+            }
         }
 
-        result.TotalScore = totalScore;
-        result.MaximumScore = maximumScore;
-        result.Percentage = maximumScore > 0 ? (totalScore / maximumScore) * 100 : 0;
+        // Calculate final score
+        var finalScore = VstepScoreCalculator.CalculateFinalScore(
+            listeningScore, readingScore, writingScore);
+
         result.SectionScores = sectionScores;
+        result.FinalScore = finalScore;
 
         return Result.Success(result);
     }

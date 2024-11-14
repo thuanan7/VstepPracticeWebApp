@@ -6,9 +6,8 @@ public class AttemptResultResponse
     public string ExamTitle { get; set; } = string.Empty;
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
-    public decimal TotalScore { get; set; }
-    public decimal MaximumScore { get; set; }
-    public decimal Percentage { get; set; }
     public Dictionary<string, decimal> SectionScores { get; set; } = new();
+    public WritingSectionScore? WritingDetails { get; set; }
+    public decimal FinalScore { get; set; }
     public List<AnswerResponse> Answers { get; set; } = new();
 }

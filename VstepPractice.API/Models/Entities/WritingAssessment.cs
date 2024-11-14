@@ -21,7 +21,9 @@ public class WritingAssessment : BaseEntity
     public string DetailedFeedback { get; set; } = string.Empty;
     public DateTime AssessedAt { get; set; } = DateTime.UtcNow;
 
-    // Chỉ có một navigation property
+    [NotMapped]
+    public decimal TotalScore => Math.Round((TaskAchievement + CoherenceCohesion + LexicalResource + GrammarAccuracy), 1);
+
     [ForeignKey(nameof(AnswerId))]
     public virtual Answer Answer { get; set; } = default!;
 }

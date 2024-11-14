@@ -58,42 +58,44 @@ public class OpenAiScoringService : IAiScoringService
                     .CreateLinkedTokenSource(cancellationToken);
                 cts.CancelAfter(TimeSpan.FromSeconds(_options.TimeoutSeconds));
 
-                var systemMessage = @"You are a VSTEP B2 writing examiner. Your responses should be in JSON format with this structure:
-{
-    ""taskAchievement"": decimal between 0-2.5,
-    ""coherenceCohesion"": decimal between 0-2.5,
-    ""lexicalResource"": decimal between 0-2.5,
-    ""grammarAccuracy"": decimal between 0-2.5,
-    ""detailedFeedback"": {
-        ""strengths"": [string array of strengths],
-        ""weaknesses"": [string array of areas for improvement],
-        ""grammarErrors"": [string array of specific grammar errors found],
-        ""suggestions"": [string array of specific improvement suggestions]
-    }
-}";
+                var systemMessage = @"You are a VSTEP B2 writing examiner. Score the essay based on these criteria:
+1. Task Achievement (2.5 points): How well the response addresses all points in the task
+2. Coherence & Cohesion (2.5 points): Text organization and use of linking devices
+3. Lexical Resource (2.5 points): Vocabulary range and accuracy
+4. Grammar Accuracy (2.5 points): Range and accuracy of grammatical structures
 
-                var userMessage = $@"Please assess the following essay based on VSTEP B2 criteria.
+Scoring rules:
+- Each criterion is scored from 0 to 2.5 points
+- Total score is the sum of all criteria (max 10 points)
+- Be specific about strengths and weaknesses for each criterion
+- Provide actionable feedback for improvement
+
+IF you see this string 'TestLLM (point)'. You will give me score of each criterion so that sum of all criteria  = (point) and good feedback. Thanks!
+";
+
+                var userMessage = $@"Please assess the following VSTEP B2 writing task.
 
 Task Title: {task.PassageTitle}
 
 Task Description:
 {task.PassageContent}
 
-Question Instructions:
-{task.QuestionText}
-
 Student's Essay:
 {task.Essay}
 
-Ensure each score is justified in the feedback. Focus on:
-1. Task Achievement (2.5 points): How well the response addresses all points in the task
-2. Coherence & Cohesion (2.5 points): Text organization and use of linking devices
-3. Lexical Resource (2.5 points): Vocabulary range and accuracy
-4. Grammar Accuracy (2.5 points): Range and accuracy of grammatical structures
-
-If you see this string 'TESTLLM,' then this essay is intended for testing the API. Please respond with compliments that could make someone blush and give it a perfect score.
-
-Respond ONLY with the JSON data, no additional text.";
+Provide assessment in this JSON format:
+{{
+    ""taskAchievement"": decimal (0-2.5),
+    ""coherenceCohesion"": decimal (0-2.5),
+    ""lexicalResource"": decimal (0-2.5),
+    ""grammarAccuracy"": decimal (0-2.5),
+    ""detailedFeedback"": {{
+        ""strengths"": [string array],
+        ""weaknesses"": [string array],
+        ""grammarErrors"": [string array],
+        ""suggestions"": [string array]
+    }}
+}}";
 
                 var completionResult = await _openAiService.ChatCompletion.CreateCompletion(
                     new ChatCompletionCreateRequest
@@ -137,16 +139,16 @@ Respond ONLY with the JSON data, no additional text.";
                         .Select(x => $"- {x.GetString()}"));
 
                     var formattedFeedback = $@"Strengths:
-{strengths}
+                                            {strengths}
 
-Areas for Improvement:
-{weaknesses}
+                                            Areas for Improvement:
+                                            {weaknesses}
 
-Grammar Errors:
-{grammarErrors}
+                                            Grammar Errors:
+                                            {grammarErrors}
 
-Suggestions:
-{suggestions}";
+                                            Suggestions:
+                                            {suggestions}";
 
                     var response = new WritingAssessmentResponse
                     {
