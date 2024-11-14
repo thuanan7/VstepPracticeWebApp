@@ -3,12 +3,15 @@ using Microsoft.EntityFrameworkCore;
 using System.Reflection;
 using VstepPractice.API.Data;
 using VstepPractice.API.DependencyInjection.Extensions;
-using VstepPractice.API.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load environment variables from .env file
+builder.Configuration.LoadEnv();
+
 // Add services to the container.
-builder.Services.AddAiServices(builder.Configuration);
+builder.Services.AddAiBackGroundServices();
+builder.Services.AddOpenAiServices(builder.Configuration);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));

@@ -1,7 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using VstepPractice.API.Data;
 
-namespace VstepPractice.API.Extensions;
+namespace VstepPractice.API.DependencyInjection.Extensions;
 
 public static class MigrationExtensions
 {
