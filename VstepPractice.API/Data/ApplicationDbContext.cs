@@ -187,26 +187,42 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int>
         });
 
         // WritingAssessment configuration
-        builder.Entity<WritingAssessment>()
-            .HasOne(wa => wa.Answer)
-            .WithOne()
-            .HasForeignKey<WritingAssessment>(wa => wa.AnswerId)
-            .OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<WritingAssessment>(entity =>
+        {
+            entity.ToTable("WritingAssessments");
 
-        builder.Entity<WritingAssessment>()
-            .Property(wa => wa.TaskAchievement)
-            .HasPrecision(4, 2);
+            entity.HasKey(e => e.Id);
 
-        builder.Entity<WritingAssessment>()
-            .Property(wa => wa.CoherenceCohesion)
-            .HasPrecision(4, 2);
+            entity.Property(e => e.TaskAchievement)
+                .HasPrecision(4, 2)
+                .IsRequired();
 
-        builder.Entity<WritingAssessment>()
-            .Property(wa => wa.LexicalResource)
-            .HasPrecision(4, 2);
+            entity.Property(e => e.CoherenceCohesion)
+                .HasPrecision(4, 2)
+                .IsRequired();
 
-        builder.Entity<WritingAssessment>()
-            .Property(wa => wa.GrammarAccuracy)
-            .HasPrecision(4, 2);
+            entity.Property(e => e.LexicalResource)
+                .HasPrecision(4, 2)
+                .IsRequired();
+
+            entity.Property(e => e.GrammarAccuracy)
+                .HasPrecision(4, 2)
+                .IsRequired();
+
+            entity.Property(e => e.DetailedFeedback)
+                .IsRequired();
+
+            entity.Property(e => e.AssessedAt)
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()")
+                .IsRequired();
+
+            entity.HasOne(w => w.Answer)
+                .WithOne()
+                .HasForeignKey<WritingAssessment>(w => w.AnswerId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }

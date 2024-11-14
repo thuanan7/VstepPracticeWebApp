@@ -12,8 +12,8 @@ using VstepPractice.API.Data;
 namespace VstepPractice.API.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241113173946_MakeSelectedOptionIdOfAnswerTableNullable")]
-    partial class MakeSelectedOptionIdOfAnswerTableNullable
+    [Migration("20241114005110_AddWritingAssessmentTable")]
+    partial class AddWritingAssessmentTable
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -536,7 +536,9 @@ namespace VstepPractice.API.Migrations
                         .HasColumnType("decimal(4,2)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("DetailedFeedback")
                         .IsRequired()
@@ -559,7 +561,7 @@ namespace VstepPractice.API.Migrations
                     b.HasIndex("AnswerId")
                         .IsUnique();
 
-                    b.ToTable("WritingAssessments");
+                    b.ToTable("WritingAssessments", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>

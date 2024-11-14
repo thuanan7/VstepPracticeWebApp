@@ -533,7 +533,9 @@ namespace VstepPractice.API.Migrations
                         .HasColumnType("decimal(4,2)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("DetailedFeedback")
                         .IsRequired()
@@ -556,7 +558,7 @@ namespace VstepPractice.API.Migrations
                     b.HasIndex("AnswerId")
                         .IsUnique();
 
-                    b.ToTable("WritingAssessments");
+                    b.ToTable("WritingAssessments", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<int>", b =>

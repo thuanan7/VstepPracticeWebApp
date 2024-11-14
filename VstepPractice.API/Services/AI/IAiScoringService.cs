@@ -7,8 +7,6 @@ namespace VstepPractice.API.Services.AI;
 public interface IAiScoringService
 {
     Task<Result<WritingAssessmentResponse>> AssessEssayAsync(
-        int answerId,
-        string essay,
-        string prompt,
+        EssayScoringTask task,
         CancellationToken cancellationToken = default);
 }

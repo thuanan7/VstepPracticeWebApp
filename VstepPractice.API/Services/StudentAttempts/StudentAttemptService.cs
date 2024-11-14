@@ -1,12 +1,12 @@
 ﻿using AutoMapper;
 using VstepPractice.API.Common.Enums;
 using VstepPractice.API.Common.Utils;
+using VstepPractice.API.Models.DTOs.AI;
 using VstepPractice.API.Models.DTOs.StudentAttempts.Requests;
 using VstepPractice.API.Models.DTOs.StudentAttempts.Responses;
 using VstepPractice.API.Models.Entities;
 using VstepPractice.API.Repositories.Interfaces;
 using VstepPractice.API.Services.AI;
-using VstepPractice.API.Services.BackgroundServices;
 
 namespace VstepPractice.API.Services.StudentAttempts;
 
@@ -92,12 +92,10 @@ public class StudentAttemptService : IStudentAttemptService
         Answer answer;
         if (existingAnswer != null)
         {
-            // Update existing answer
             answer = existingAnswer;
         }
         else
         {
-            // Create new answer
             answer = new Answer
             {
                 AttemptId = attemptId,
@@ -112,17 +110,8 @@ public class StudentAttemptService : IStudentAttemptService
             case SectionType.Writing:
                 answer.EssayAnswer = request.EssayAnswer;
                 answer.SelectedOptionId = null; // Explicitly set to null for writing
-
-                // Queue for AI scoring if essay is provided
-                if (!string.IsNullOrEmpty(request.EssayAnswer))
-                {
-                    await _scoringQueue.QueueScoringTaskAsync(new EssayScoringTask
-                    {
-                        AnswerId = answer.Id,
-                        Essay = request.EssayAnswer,
-                        Prompt = question.QuestionText ?? string.Empty
-                    });
-                }
+                answer.Score = null; // Reset score as it will be set by AI
+                answer.AiFeedback = null; // Reset feedback as it will be set by AI
                 break;
 
             case SectionType.Reading:
@@ -133,8 +122,9 @@ public class StudentAttemptService : IStudentAttemptService
                         new Error("Answer.OptionRequired", "Multiple choice answer requires a selected option."));
                 }
 
+                answer.EssayAnswer = null; // Reset essay answer for multiple choice
                 answer.SelectedOptionId = request.SelectedOptionId;
-                answer.EssayAnswer = null; // Explicitly set to null for multiple choice
+                answer.AiFeedback = null;
 
                 // Calculate score immediately for multiple choice
                 var selectedOption = await _unitOfWork.QuestionOptions
@@ -146,12 +136,25 @@ public class StudentAttemptService : IStudentAttemptService
                 throw new NotSupportedException($"Question type {question.Section.Type} is not supported.");
         }
 
+        // Save answer changes first
         if (existingAnswer != null)
         {
             _unitOfWork.AnswerRepository.Update(answer);
         }
-
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        // Queue writing assessment if needed
+        if (question.Section.Type == SectionType.Writing && !string.IsNullOrEmpty(request.EssayAnswer))
+        {
+            await _scoringQueue.QueueScoringTaskAsync(new EssayScoringTask
+            {
+                AnswerId = answer.Id,
+                PassageTitle = question.Passage.Title,
+                PassageContent = question.Passage.Content ?? string.Empty,
+                QuestionText = question.QuestionText ?? string.Empty,
+                Essay = request.EssayAnswer
+            });
+        }
 
         var response = _mapper.Map<AnswerResponse>(answer);
         return Result.Success(response);
@@ -186,7 +189,6 @@ public class StudentAttemptService : IStudentAttemptService
         int attemptId,
         CancellationToken cancellationToken = default)
     {
-        // Sử dụng repository method mới để load đầy đủ data
         var attempt = await _unitOfWork.StudentAttemptRepository
             .GetAttemptWithDetailsAsync(attemptId, cancellationToken);
 
@@ -197,14 +199,28 @@ public class StudentAttemptService : IStudentAttemptService
             return Result.Failure<AttemptResultResponse>(
                 new Error("Attempt.NotCompleted", "This attempt is not completed."));
 
-        // Calculate scores
+        // Calculate scores and create response
         var result = new AttemptResultResponse
         {
             Id = attempt.Id,
-            ExamTitle = attempt.Exam.Title!,
+            ExamTitle = attempt.Exam.Title ?? "Untitled Exam",
             StartTime = attempt.StartTime,
             EndTime = attempt.EndTime!.Value,
-            Answers = _mapper.Map<List<AnswerResponse>>(attempt.Answers)
+            Answers = attempt.Answers.Select(answer => new AnswerResponse
+            {
+                Id = answer.Id,
+                QuestionId = answer.QuestionId,
+                QuestionText = answer.Question.QuestionText ?? string.Empty,
+                PassageTitle = answer.Question.Passage?.Title ?? string.Empty,
+                PassageContent = answer.Question.Passage?.Content,
+                SelectedOptionId = answer.SelectedOptionId,
+                EssayAnswer = answer.EssayAnswer,
+                AiFeedback = answer.AiFeedback,
+                Score = answer.Score,
+                IsCorrect = answer.SelectedOptionId.HasValue &&
+                           answer.Question.Options.Any(o =>
+                               o.Id == answer.SelectedOptionId && o.IsCorrect)
+            }).ToList()
         };
 
         // Calculate total and section scores
@@ -220,7 +236,7 @@ public class StudentAttemptService : IStudentAttemptService
             var sectionScore = sectionAnswers.Sum(a => a.Score ?? 0);
             var sectionMaxScore = section.Questions.Sum(q => q.Points);
 
-            sectionScores.Add(section.Title!, sectionScore);
+            sectionScores.Add(section.Title ?? $"Section {section.OrderNum}", sectionScore);
             totalScore += sectionScore;
             maximumScore += sectionMaxScore;
         }

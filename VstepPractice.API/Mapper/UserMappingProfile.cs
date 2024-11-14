@@ -38,11 +38,30 @@ public class UserMappingProfile : Profile
         CreateMap<Answer, AnswerResponse>()
             .ForMember(dest => dest.QuestionText,
                 opt => opt.MapFrom(src => src.Question.QuestionText))
+            .ForMember(dest => dest.PassageTitle,
+                opt => opt.MapFrom(src => src.Question.Passage.Title))
+            .ForMember(dest => dest.PassageContent,
+                opt => opt.MapFrom(src => src.Question.Passage.Content))
             .ForMember(dest => dest.IsCorrect,
                 opt => opt.MapFrom(src =>
                     src.SelectedOptionId.HasValue &&
                     src.Question.Options.Any(o =>
                         o.Id == src.SelectedOptionId &&
                         o.IsCorrect)));
+
+        // Add map for AttemptResultResponse if not already defined
+        CreateMap<StudentAttempt, AttemptResultResponse>()
+            .ForMember(dest => dest.ExamTitle,
+                opt => opt.MapFrom(src => src.Exam.Title))
+            .ForMember(dest => dest.Answers,
+                opt => opt.MapFrom(src => src.Answers))
+            .ForMember(dest => dest.SectionScores,
+                opt => opt.Ignore()) // This is calculated manually
+            .ForMember(dest => dest.TotalScore,
+                opt => opt.Ignore()) // This is calculated manually
+            .ForMember(dest => dest.MaximumScore,
+                opt => opt.Ignore()) // This is calculated manually
+            .ForMember(dest => dest.Percentage,
+                opt => opt.Ignore()); // This is calculated manually
     }
 }

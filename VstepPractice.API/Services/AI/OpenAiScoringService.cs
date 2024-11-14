@@ -47,9 +47,7 @@ public class OpenAiScoringService : IAiScoringService
     }
 
     public async Task<Result<WritingAssessmentResponse>> AssessEssayAsync(
-        int answerId,
-        string essay,
-        string prompt,
+        EssayScoringTask task,
         CancellationToken cancellationToken = default)
     {
         return await _retryPolicy.ExecuteAsync(async () =>
@@ -74,13 +72,26 @@ public class OpenAiScoringService : IAiScoringService
     }
 }";
 
-                var userMessage = $@"Please assess the following essay based on VSTEP criteria.
-Original task: {prompt}
+                var userMessage = $@"Please assess the following essay based on VSTEP B2 criteria.
 
-Essay to assess:
-{essay}
+Task Title: {task.PassageTitle}
 
-Ensure each score is justified in the feedback. Focus on actionable feedback that helps the student improve. Respond ONLY with the JSON data, no additional text.";
+Task Description:
+{task.PassageContent}
+
+Question Instructions:
+{task.QuestionText}
+
+Student's Essay:
+{task.Essay}
+
+Ensure each score is justified in the feedback. Focus on:
+1. Task Achievement (2.5 points): How well the response addresses all points in the task
+2. Coherence & Cohesion (2.5 points): Text organization and use of linking devices
+3. Lexical Resource (2.5 points): Vocabulary range and accuracy
+4. Grammar Accuracy (2.5 points): Range and accuracy of grammatical structures
+
+Respond ONLY with the JSON data, no additional text.";
 
                 var completionResult = await _openAiService.ChatCompletion.CreateCompletion(
                     new ChatCompletionCreateRequest
@@ -160,7 +171,7 @@ Suggestions:
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error assessing essay for answerId {AnswerId}", answerId);
+                _logger.LogError(ex, "Error assessing essay for answerId {AnswerId}", task.AnswerId);
                 return Result.Failure<WritingAssessmentResponse>(
                     new Error("AiScoring.Failed", "Failed to assess essay. Please try again later."));
             }
@@ -168,11 +179,12 @@ Suggestions:
     }
 }
 
+
 public class OpenAiOptions
 {
     public const string SectionName = "OpenAI";
 
-    public string ApiKey { get; set; } = "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";
+    public string ApiKey { get; set; } = string.Empty;
     public string ModelName { get; set; } = "gpt-4";
     public int TimeoutSeconds { get; set; } = 30;
     public int MaxRetries { get; set; } = 3;

@@ -35,6 +35,10 @@ public class StudentAttemptRepository : RepositoryBase<StudentAttempt, int>, ISt
                     .ThenInclude(s => s.Questions)
             .Include(a => a.Answers)
                 .ThenInclude(ans => ans.Question)
+                    .ThenInclude(q => q.Passage) // Add Passage include
+            .Include(a => a.Answers)
+                .ThenInclude(ans => ans.Question)
+                    .ThenInclude(q => q.Options)
             .Include(a => a.Answers)
                 .ThenInclude(ans => ans.SelectedOption)
             .FirstOrDefaultAsync(a => a.Id == attemptId, cancellationToken);

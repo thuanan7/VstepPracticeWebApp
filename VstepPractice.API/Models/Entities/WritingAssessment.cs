@@ -21,7 +21,7 @@ public class WritingAssessment : BaseEntity
     public string DetailedFeedback { get; set; } = string.Empty;
     public DateTime AssessedAt { get; set; } = DateTime.UtcNow;
 
-    // Navigation properties
-    [ForeignKey("AnswerId")]
+    // Chỉ có một navigation property
+    [ForeignKey(nameof(AnswerId))]
     public virtual Answer Answer { get; set; } = default!;
 }

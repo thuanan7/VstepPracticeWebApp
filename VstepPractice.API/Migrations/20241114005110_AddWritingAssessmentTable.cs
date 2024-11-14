@@ -24,7 +24,7 @@ namespace VstepPractice.API.Migrations
                     GrammarAccuracy = table.Column<decimal>(type: "decimal(4,2)", precision: 4, scale: 2, nullable: false),
                     DetailedFeedback = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AssessedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {

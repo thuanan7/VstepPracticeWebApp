@@ -1,16 +1,10 @@
 ﻿using System.Threading.Channels;
+using VstepPractice.API.Models.DTOs.AI;
 using VstepPractice.API.Models.Entities;
 using VstepPractice.API.Repositories.Interfaces;
 using VstepPractice.API.Services.AI;
 
 namespace VstepPractice.API.Services.BackgroundServices;
-
-public class EssayScoringTask
-{
-    public int AnswerId { get; set; }
-    public string Essay { get; set; } = string.Empty;
-    public string Prompt { get; set; } = string.Empty;
-}
 
 public class EssayScoringBackgroundService : BackgroundService, IEssayScoringQueue
 {
@@ -70,63 +64,102 @@ public class EssayScoringBackgroundService : BackgroundService, IEssayScoringQue
             var aiScoringService = scope.ServiceProvider.GetRequiredService<IAiScoringService>();
             var unitOfWork = scope.ServiceProvider.GetRequiredService<IUnitOfWork>();
 
-            // Check if assessment already exists
-            var existingAssessment = await unitOfWork.WritingAssessmentRepository
-                .GetByAnswerIdAsync(task.AnswerId, cancellationToken);
+            // Start transaction
+            await unitOfWork.BeginTransactionAsync(cancellationToken);
 
-            if (existingAssessment != null)
+            try
             {
                 _logger.LogInformation(
-                    "Assessment already exists for answerId {AnswerId}", task.AnswerId);
-                return;
-            }
+                    "Starting to process assessment for answerId {AnswerId}", task.AnswerId);
+                // Get answer with tracking
+                var answer = await unitOfWork.AnswerRepository
+                    .FindByIdAsync(task.AnswerId, cancellationToken);
 
-            // Get AI assessment
-            var assessmentResult = await aiScoringService.AssessEssayAsync(
-                task.AnswerId,
-                task.Essay,
-                task.Prompt,
-                cancellationToken);
+                if (answer == null)
+                {
+                    _logger.LogError("Answer not found for answerId {AnswerId}", task.AnswerId);
+                    return;
+                }
 
-            if (!assessmentResult.IsSuccess)
-            {
-                _logger.LogError(
-                    "Failed to get AI assessment for answerId {AnswerId}: {Error}",
-                    task.AnswerId,
-                    assessmentResult.Error.Message);
-                return;
-            }
+                // Check if assessment already exists
+                var existingAssessment = await unitOfWork.WritingAssessmentRepository
+                    .GetByAnswerIdAsync(task.AnswerId, cancellationToken);
 
-            var assessment = assessmentResult.Value;
+                if (existingAssessment != null)
+                {
+                    _logger.LogInformation(
+                        "Assessment already exists for answerId {AnswerId}", task.AnswerId);
+                    return;
+                }
 
-            // Create WritingAssessment
-            var writingAssessment = new WritingAssessment
-            {
-                AnswerId = task.AnswerId,
-                TaskAchievement = assessment.TaskAchievement,
-                CoherenceCohesion = assessment.CoherenceCohesion,
-                LexicalResource = assessment.LexicalResource,
-                GrammarAccuracy = assessment.GrammarAccuracy,
-                DetailedFeedback = assessment.DetailedFeedback
-            };
+                // Get AI assessment
+                var assessmentResult = await aiScoringService.AssessEssayAsync(
+                    task,
+                    cancellationToken);
 
-            // Update Answer
-            var answer = await unitOfWork.AnswerRepository
-                .FindByIdAsync(task.AnswerId, cancellationToken);
+                if (!assessmentResult.IsSuccess)
+                {
+                    _logger.LogError(
+                        "Failed to get AI assessment for answerId {AnswerId}: {Error}",
+                        task.AnswerId,
+                        assessmentResult.Error.Message);
+                    return;
+                }
 
-            if (answer != null)
-            {
+                var assessment = assessmentResult.Value;
+
+                // Create WritingAssessment
+                var writingAssessment = new WritingAssessment
+                {
+                    AnswerId = task.AnswerId,
+                    TaskAchievement = assessment.TaskAchievement,
+                    CoherenceCohesion = assessment.CoherenceCohesion,
+                    LexicalResource = assessment.LexicalResource,
+                    GrammarAccuracy = assessment.GrammarAccuracy,
+                    DetailedFeedback = assessment.DetailedFeedback,
+                    AssessedAt = DateTime.UtcNow
+                };
+
+                // Update Answer
                 answer.Score = assessment.TotalScore;
                 answer.AiFeedback = assessment.DetailedFeedback;
+
+                // Log the assessment details before saving
+                _logger.LogDebug(
+                    "Assessment details for answerId {AnswerId}: TaskAchievement={TaskAchievement}, " +
+                    "CoherenceCohesion={CoherenceCohesion}, LexicalResource={LexicalResource}, " +
+                    "GrammarAccuracy={GrammarAccuracy}",
+                    task.AnswerId,
+                    writingAssessment.TaskAchievement,
+                    writingAssessment.CoherenceCohesion,
+                    writingAssessment.LexicalResource,
+                    writingAssessment.GrammarAccuracy);
+
+                // Log before each major operation
+                _logger.LogDebug("Updating Answer entity");
                 unitOfWork.AnswerRepository.Update(answer);
+
+                _logger.LogDebug("Adding WritingAssessment entity");
+                unitOfWork.WritingAssessmentRepository.Add(writingAssessment);
+
+                _logger.LogDebug("Saving changes to database");
+                await unitOfWork.SaveChangesAsync(cancellationToken);
+
+                _logger.LogDebug("Committing transaction");
+                await unitOfWork.CommitAsync(cancellationToken);
+
+                _logger.LogInformation(
+                    "Successfully processed assessment for answerId {AnswerId}", task.AnswerId);
             }
-
-            // Save assessment
-            unitOfWork.WritingAssessmentRepository.Add(writingAssessment);
-            await unitOfWork.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation(
-                "Successfully processed assessment for answerId {AnswerId}", task.AnswerId);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Detailed error for answerId {AnswerId}: {ErrorMessage}",
+                    task.AnswerId,
+                    ex.ToString());
+                await unitOfWork.RollbackAsync(cancellationToken);
+                throw;
+            }
         }
         catch (Exception ex)
         {
