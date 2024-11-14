@@ -218,7 +218,10 @@ public class StudentAttemptService : IStudentAttemptService
 
             var answerResponse = _mapper.Map<AnswerResponse>(answer, opt =>
             {
-                opt.Items["WritingAssessment"] = writingAssessment;
+                if (writingAssessment != null)
+                {
+                    opt.Items["WritingAssessment"] = writingAssessment;
+                }
             });
             answers.Add(answerResponse);
         }

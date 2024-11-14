@@ -32,10 +32,13 @@ public class StudentAttemptRepository : RepositoryBase<StudentAttempt, int>, ISt
         return await _context.StudentAttempts
             .Include(a => a.Exam)
                 .ThenInclude(e => e.Sections)
-                    .ThenInclude(s => s.Parts)  // Include Parts
+                    .ThenInclude(s => s.Parts)
             .Include(a => a.Answers)
                 .ThenInclude(ans => ans.Question)
-                    .ThenInclude(q => q.Part)   // Include Part for Question
+                    .ThenInclude(q => q.Section)
+            .Include(a => a.Answers)
+                .ThenInclude(ans => ans.Question)
+                    .ThenInclude(q => q.Part)
             .Include(a => a.Answers)
                 .ThenInclude(ans => ans.Question)
                     .ThenInclude(q => q.Passage)

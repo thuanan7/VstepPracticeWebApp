@@ -57,6 +57,10 @@ public class UserMappingProfile : Profile
         CreateMap<Answer, AnswerResponse>()
             .ForMember(dest => dest.QuestionText,
                 opt => opt.MapFrom(src => src.Question.QuestionText))
+            .ForMember(dest => dest.SectionTitle,
+                opt => opt.MapFrom(src => src.Question.Section.Title)) // Map section title
+            .ForMember(dest => dest.PartTitle,
+                opt => opt.MapFrom(src => src.Question.Part.Title))   // Map part title
             .ForMember(dest => dest.PassageTitle,
                 opt => opt.MapFrom(src => src.Question.Passage.Title))
             .ForMember(dest => dest.PassageContent,
@@ -66,10 +70,13 @@ public class UserMappingProfile : Profile
                 {
                     if (src.Question.Section.Type == SectionType.Writing)
                     {
-                        var assessment = context.Items.ContainsKey("WritingAssessment")
-                            ? context.Items["WritingAssessment"] as WritingAssessment
-                            : null;
-                        return assessment?.TotalScore;
+                        if (context.TryGetItems(out var items) &&
+                            items.TryGetValue("WritingAssessment", out var assessmentObj) &&
+                            assessmentObj is WritingAssessment assessment)
+                        {
+                            return assessment.TotalScore;
+                        }
+                        return null;
                     }
                     return src.Score;
                 }))
@@ -79,20 +86,19 @@ public class UserMappingProfile : Profile
                     if (src.Question.Section.Type != SectionType.Writing)
                         return null;
 
-                    var assessment = context.Items.ContainsKey("WritingAssessment")
-                        ? context.Items["WritingAssessment"] as WritingAssessment
-                        : null;
-
-                    if (assessment == null)
-                        return null;
-
-                    return new WritingScoreDetails
+                    if (context.TryGetItems(out var items) &&
+                        items.TryGetValue("WritingAssessment", out var assessmentObj) &&
+                        assessmentObj is WritingAssessment assessment)
                     {
-                        TaskAchievement = assessment.TaskAchievement,
-                        CoherenceCohesion = assessment.CoherenceCohesion,
-                        LexicalResource = assessment.LexicalResource,
-                        GrammarAccuracy = assessment.GrammarAccuracy
-                    };
+                        return new WritingScoreDetails
+                        {
+                            TaskAchievement = assessment.TaskAchievement,
+                            CoherenceCohesion = assessment.CoherenceCohesion,
+                            LexicalResource = assessment.LexicalResource,
+                            GrammarAccuracy = assessment.GrammarAccuracy
+                        };
+                    }
+                    return null;
                 }))
             .ForMember(dest => dest.IsCorrect,
                 opt => opt.MapFrom(src =>

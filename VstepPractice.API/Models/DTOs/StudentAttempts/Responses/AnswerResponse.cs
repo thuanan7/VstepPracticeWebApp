@@ -4,6 +4,8 @@ public class AnswerResponse
 {
     public int Id { get; set; }
     public int QuestionId { get; set; }
+    public string SectionTitle { get; set; } = string.Empty;   // New field
+    public string PartTitle { get; set; } = string.Empty;      // New field
     public string QuestionText { get; set; } = string.Empty;
     public string PassageTitle { get; set; } = string.Empty;
     public string? PassageContent { get; set; }
