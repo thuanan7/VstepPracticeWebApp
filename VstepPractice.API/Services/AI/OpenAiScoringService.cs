@@ -138,17 +138,18 @@ Provide assessment in this JSON format:
                         .EnumerateArray()
                         .Select(x => $"- {x.GetString()}"));
 
-                    var formattedFeedback = $@"Strengths:
-                                            {strengths}
+                    var formattedFeedback = $@"
+Strengths:
+{strengths}
 
-                                            Areas for Improvement:
-                                            {weaknesses}
+Areas for Improvement:
+{weaknesses}
 
-                                            Grammar Errors:
-                                            {grammarErrors}
+Grammar Errors:
+{grammarErrors}
 
-                                            Suggestions:
-                                            {suggestions}";
+ Suggestions:
+{suggestions}";
 
                     var response = new WritingAssessmentResponse
                     {

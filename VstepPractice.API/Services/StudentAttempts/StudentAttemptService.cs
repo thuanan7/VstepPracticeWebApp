@@ -1,4 +1,6 @@
 ﻿using AutoMapper;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using VstepPractice.API.Common.Enums;
 using VstepPractice.API.Common.Utils;
 using VstepPractice.API.Models.DTOs.AI;
@@ -30,37 +32,57 @@ public class StudentAttemptService : IStudentAttemptService
     }
 
     public async Task<Result<AttemptResponse>> StartAttemptAsync(
-        int userId,
-        StartAttemptRequest request,
-        CancellationToken cancellationToken = default)
+    int userId,
+    StartAttemptRequest request,
+    CancellationToken cancellationToken = default)
     {
-        var exam = await _unitOfWork.ExamRepository.FindByIdAsync(
-            request.ExamId, cancellationToken);
-
-        if (exam == null)
-            return Result.Failure<AttemptResponse>(Error.NotFound);
-
-        // Check if user has any in-progress attempts
-        var hasInProgressAttempt = await _unitOfWork.StudentAttemptRepository
-            .HasInProgressAttempt(userId, request.ExamId, cancellationToken);
-
-        if (hasInProgressAttempt)
-            return Result.Failure<AttemptResponse>(
-                new Error("Attempt.InProgress", "You have an in-progress attempt for this exam."));
-
-        var attempt = new StudentAttempt
+        try
         {
-            UserId = userId,
-            ExamId = request.ExamId,
-            StartTime = DateTime.UtcNow,
-            Status = AttemptStatus.InProgress
-        };
+            var exam = await _unitOfWork.ExamRepository.FindByIdAsync(
+                request.ExamId, cancellationToken);
 
-        _unitOfWork.StudentAttemptRepository.Add(attempt);
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+            if (exam == null)
+                return Result.Failure<AttemptResponse>(Error.NotFound);
 
-        var response = _mapper.Map<AttemptResponse>(attempt);
-        return Result.Success(response);
+            var attempt = new StudentAttempt
+            {
+                UserId = userId,
+                ExamId = request.ExamId,
+                StartTime = DateTime.UtcNow,
+                Status = AttemptStatus.InProgress
+            };
+
+            _unitOfWork.StudentAttemptRepository.Add(attempt);
+
+            try
+            {
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex)
+            {
+                if (IsDuplicateKeyException(ex))
+                {
+                    return Result.Failure<AttemptResponse>(
+                        new Error("Attempt.InProgress",
+                                 "You have an in-progress attempt for this exam."));
+                }
+                throw;
+            }
+
+            var response = _mapper.Map<AttemptResponse>(attempt);
+            return Result.Success(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error starting attempt");
+            throw;
+        }
+    }
+
+    private bool IsDuplicateKeyException(DbUpdateException ex)
+    {
+        return ex.InnerException is SqlException sqlEx
+               && (sqlEx.Number == 2601 || sqlEx.Number == 2627);
     }
 
     public async Task<Result<AnswerResponse>> SubmitAnswerAsync(

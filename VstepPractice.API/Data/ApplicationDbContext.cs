@@ -148,6 +148,14 @@ public class ApplicationDbContext : IdentityDbContext<User, Role, int>
             .HasForeignKey(sa => sa.ExamId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.Entity<StudentAttempt>(entity =>
+        {
+            // Add unique constraint
+            entity.HasIndex(e => new { e.UserId, e.ExamId, e.Status })
+                .IsUnique()
+                .HasFilter("[Status] = 0"); // 0 = InProgress
+        });
+
         // Answer relationships
         builder.Entity<Answer>()
             .HasOne(a => a.Attempt)
